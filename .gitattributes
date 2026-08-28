@@ -1,0 +1,18 @@
+# Normalise line endings in the repository, so a checkout on Windows and one
+# on Linux produce the same blobs. Without this the first commit from either
+# platform rewrites every file for the other.
+* text=auto eol=lf
+
+# Binary assets: never normalise, never diff as text.
+*.png binary
+*.ico binary
+*.icns binary
+
+# Generated, and checked in so the UI type-checks without a Rust toolchain.
+# Marked so reviews collapse it by default; regenerate with `npm run gen:types`.
+apps/ui/src/Types/generated/** linguist-generated=true
+
+# Lockfiles are committed on purpose - this is an application, not a library -
+# but they are noise in a diff.
+package-lock.json linguist-generated=true
+Cargo.lock linguist-generated=true

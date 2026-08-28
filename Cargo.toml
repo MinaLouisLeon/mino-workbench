@@ -1,0 +1,45 @@
+[workspace]
+resolver = "2"
+members = ["crates/mino-core", "crates/mino-agent", "apps/desktop/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+# 1.85 is the floor edition 2024 imposes: transitive crates (zeroize by way
+# of russh) are published as edition 2024 and will not parse below it.
+rust-version = "1.85"
+license = "MIT"
+
+# Every version below is pinned on purpose. See docs/mino-workbench/overview.md
+# ("Pinned versions") before changing any of them.
+[workspace.dependencies]
+mino-core = { path = "crates/mino-core" }
+
+anyhow = "1.0.95"
+async-trait = "0.1.83"
+base64 = "0.22.1"
+clap = { version = "4.5.23", features = ["derive"] }
+futures-util = "0.3.31"
+portable-pty = "0.8.1"
+serde = { version = "1.0.216", features = ["derive"] }
+serde_json = "1.0.134"
+thiserror = "2.0.9"
+tokio = { version = "1.42.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+ts-rs = { version = "10.1.0", features = ["serde-json-impl", "no-serde-warnings"] }
+uuid = { version = "1.11.0", features = ["v4", "serde"] }
+which = "7.0.1"
+
+# Transport scaffolding dependencies (phase 2 targets, declared now so the
+# interface is proven against three shapes from day one).
+russh = "0.49.0"
+russh-sftp = "2.0.5"
+tokio-tungstenite = "0.24.0"
+
+axum = { version = "0.8.1", features = ["ws"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

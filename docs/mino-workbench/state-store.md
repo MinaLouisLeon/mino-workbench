@@ -1,0 +1,59 @@
+# State
+
+There is no state library. React context holds what more than one pane needs;
+everything else is a hook local to its feature.
+
+## Contexts
+
+| Context | File | Holds | Read by |
+| --- | --- | --- | --- |
+| `TransportContext` | `src/context/TransportContext.tsx` | the one `TransportClient` | every hook that calls the transport |
+| `SessionContext` | `features/workbench/context/SessionContext.tsx` | `status`, `connection`, `shellProbe`, `error`, `connect`, `disconnect` | start screen, header, tree, terminal |
+| `SelectionContext` | `features/workbench/context/SelectionContext.tsx` | `selected` entry, `select` | tree writes, viewer reads |
+| `TreeRowContext` | `features/file-tree/context/TreeRowContext.tsx` | one row's data and handlers | the row's parts |
+
+`TransportProvider` takes an optional `client`, which is the seam tests inject
+a fake through. Production calls `createTransport()`.
+
+## Hooks
+
+| Hook | File | Owns |
+| --- | --- | --- |
+| `useTransport` | `context/TransportContext.tsx` | reading the client out of context |
+| `usePersistentState` | `hooks/usePersistentState.ts` | localStorage-mirrored state |
+| `useSession` | `features/workbench/hooks/useSession.ts` | connection lifecycle, teardown on unmount |
+| `useWorkbenchLayout` | `features/workbench/hooks/useWorkbenchLayout.ts` | persisted split sizes |
+| `useBreadcrumb` | `features/workbench/hooks/useBreadcrumb.ts` | structured `path split`, degrading to a TS split |
+| `useFileTree` | `features/file-tree/hooks/useFileTree.ts` | the lazy-load state machine |
+| `useFileTreePane` | `features/file-tree/hooks/useFileTreePane.ts` | root, rows, selection, activation |
+| `useFileViewer` | `features/viewer/hooks/useFileViewer.ts` | reading the selected file, guard classification |
+| `useCodeMirror` | `features/viewer/hooks/useCodeMirror.ts` | the read-only editor instance |
+| `useXterm` | `features/terminal/hooks/useXterm.ts` | the terminal instance and its fit addon |
+| `useTerminalResize` | `features/terminal/hooks/useTerminalResize.ts` | refit on container resize, coalesced per frame |
+| `useTerminalSession` | `features/terminal/hooks/useTerminalSession.ts` | binding one PTY session to one terminal |
+| `useConnectionOptions` | `features/start-screen/hooks/useConnectionOptions.ts` | folder picking and connecting |
+
+Components hold no state, no effects and no data fetching. If a pane needs
+logic, it gets a hook.
+
+## What is persisted
+
+| Key | Value | Where |
+| --- | --- | --- |
+| `mino.layout.v1` | `{ tree, viewer, terminal }` split percentages | `localStorage` |
+
+**Nothing else.** No credentials, no private keys, no passphrases, no host
+secrets, no file contents, no directory listings. `usePersistentState` is for
+layout preferences; a write that fails (storage full or disabled) is swallowed
+rather than interrupting the session.
+
+## Rust-side state
+
+| Holder | File | Holds |
+| --- | --- | --- |
+| `AppState` | `apps/desktop/src-tauri/src/state.rs` | the current `Arc<dyn Transport>` |
+| `LocalTransport.root` | `crates/mino-core/src/local/mod.rs` | the canonicalised `RootGuard` |
+| `PtyRegistry` | `crates/mino-core/src/local/pty.rs` | live PTY sessions by id |
+
+`connect` tears down the previous transport before selecting a new one, so a
+reconnect cannot leave the old session's children running.

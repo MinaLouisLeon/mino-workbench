@@ -1,0 +1,47 @@
+{
+  "name": "mino-workbench",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Three-pane Nushell workbench: React + TypeScript over a shared Rust core.",
+  "workspaces": [
+    "apps/ui"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @mino/ui",
+    "build": "npm run build --workspace @mino/ui",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build",
+    "agent": "cargo run -p mino-agent",
+    "gen:types": "node scripts/gen-types.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.17.0",
+    "@playwright/test": "1.49.1",
+    "@tauri-apps/cli": "2.1.0",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.1.0",
+    "@testing-library/user-event": "14.5.2",
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.2",
+    "@types/react-dom": "19.0.2",
+    "@typescript-eslint/eslint-plugin": "8.18.2",
+    "@typescript-eslint/parser": "8.18.2",
+    "@vitejs/plugin-react": "4.3.4",
+    "@vitest/coverage-v8": "2.1.8",
+    "eslint": "9.17.0",
+    "eslint-plugin-react-hooks": "5.1.0",
+    "jsdom": "25.0.1",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}

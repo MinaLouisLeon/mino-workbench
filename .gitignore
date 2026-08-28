@@ -1,0 +1,37 @@
+# Rust
+/target
+**/target
+
+# Node
+node_modules
+dist
+dist-ssr
+.vite
+
+# Tauri
+apps/desktop/src-tauri/gen
+
+# Test output
+coverage
+test-results
+playwright-report
+.playwright
+
+# Editor / OS
+.DS_Store
+.idea
+*.local
+
+# Machine-local build settings.
+# .cargo/config.toml points CARGO_TARGET_DIR at an absolute path on one
+# machine (a workaround for a space in this checkout's path); .cargo-env.md
+# is the note explaining it. Neither is portable, so neither is published.
+.cargo/
+.cargo-env.md
+
+# Generated from icons/logo.svg by scripts/render-logo.mjs. The SVG is the
+# source of truth; this is just the 1024px hand-off to `tauri icon`.
+apps/desktop/src-tauri/icons/source.png
+
+# Browser automation scratch output
+.playwright-mcp

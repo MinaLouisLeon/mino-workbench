@@ -1,0 +1,7 @@
+# 1.98.0, not 1.83.0: the dependency graph reaches crates that have moved to
+# edition 2024 (zeroize 1.9 by way of russh's crypto stack), and edition 2024
+# needs 1.85 or newer. Raise this pin rather than holding transitive crates
+# back - Cargo.lock is what keeps the build reproducible.
+[toolchain]
+channel = "1.98.0"
+components = ["rustfmt", "clippy"]

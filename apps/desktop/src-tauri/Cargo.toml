@@ -1,0 +1,31 @@
+[package]
+name = "mino-desktop"
+description = "Mino Workbench desktop app. Tauri commands are a thin dispatch layer over mino-core; no business logic lives here."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "mino_desktop_lib"
+# Tauri's template also lists "staticlib" and "cdylib"; both exist only so
+# `tauri android`/`tauri ios` can link the app into a mobile shell. Phase 1 is
+# desktop and agent only, and on the windows-gnu toolchain the cdylib fails to
+# link outright ("export ordinal too large") because GNU ld cannot export the
+# symbol count Tauri pulls in. Add them back alongside a mobile target.
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.4", features = [] }
+
+[dependencies]
+mino-core.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+tauri = { version = "2.1.1", features = [] }
+tauri-plugin-dialog = "2.0.4"

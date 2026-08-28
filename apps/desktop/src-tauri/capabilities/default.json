@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Everything the workbench window is allowed to do. Only the folder picker is granted beyond the core defaults; filesystem and shell access go through the transport commands, never through a plugin.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default", "dialog:allow-open"]
+}

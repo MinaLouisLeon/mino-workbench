@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Mino Workbench">
+  <!-- The source of truth for the app icon.
+       Every PNG and the .ico in this folder are generated from this file:
+         node scripts/render-logo.mjs      (SVG -> icons/source.png)
+         npx tauri icon icons/source.png   (PNG -> every size + .ico)
+
+       The two colours are `surface` and `accent` from
+       apps/ui/src/theme/tokens.ts. Keep them in step if the theme moves. -->
+  <rect width="512" height="512" rx="112" fill="#0f141c"/>
+
+  <!-- An M drawn as a terminal would draw it: one continuous stroke, flat
+       ends, mitred corners. Drawn as a single path rather than four segments
+       because separate segments leave notches where their caps overlap, and
+       butt caps because square ones overshoot the endpoints. It has to hold
+       together at 32px, so there is no other detail. -->
+  <path d="M120 360 V 180 L 216 300 L 312 180 V 360"
+        fill="none" stroke="#5ed3a9" stroke-width="44"
+        stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="8"/>
+
+  <!-- The cursor block: what makes it a terminal mark rather than a letter. -->
+  <rect x="352" y="316" width="48" height="44" fill="#8ce8c6"/>
+</svg>

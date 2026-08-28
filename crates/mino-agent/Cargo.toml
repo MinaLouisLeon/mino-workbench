@@ -1,0 +1,23 @@
+[package]
+name = "mino-agent"
+description = "Standalone Mino Workbench agent daemon. Serves the transport surface over WebSocket and HTTP, bound to loopback."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "mino-agent"
+path = "src/main.rs"
+
+[dependencies]
+mino-core.workspace = true
+
+anyhow.workspace = true
+axum.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
