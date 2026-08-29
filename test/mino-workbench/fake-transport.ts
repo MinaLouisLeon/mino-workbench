@@ -9,12 +9,17 @@ import type {
   PtyEventHandler,
   PtySession,
   PtySessionId,
+  SearchHits,
+  SearchQuery,
   ShellProbe,
   StructuredOutput,
   TransportClient,
   TransportError,
   WriteRequest,
 } from "@/Types";
+
+import { searchFiles } from "./fake-search";
+import { NU_PRESENT_PROBE } from "./fake-shell";
 
 export interface FakeTransportOptions {
   listings?: Record<string, DirEntry[]>;
@@ -23,6 +28,8 @@ export interface FakeTransportOptions {
   shellProbe?: ShellProbe;
   session?: Partial<PtySession>;
   structured?: StructuredOutput;
+  /** Paths the search walk would find, relative to the root. */
+  searchable?: string[];
 }
 
 export function makeEntry(path: string, overrides: Partial<DirEntry> = {}): DirEntry {
@@ -38,20 +45,6 @@ export function makeEntry(path: string, overrides: Partial<DirEntry> = {}): DirE
     ...overrides,
   };
 }
-
-export const NU_MISSING_PROBE: ShellProbe = {
-  nuAvailable: false,
-  nuPath: null,
-  fallbackProgram: "/bin/zsh",
-  fallbackLabel: "zsh",
-};
-
-export const NU_PRESENT_PROBE: ShellProbe = {
-  nuAvailable: true,
-  nuPath: "/usr/bin/nu",
-  fallbackProgram: "/bin/zsh",
-  fallbackLabel: "zsh",
-};
 
 /**
  * The primary test seam: a fake implementation of the same interface the panes
@@ -98,6 +91,10 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
       return options.listings?.[path] ?? [];
     }),
     stat: vi.fn(async (path: string) => makeEntry(path)),
+    searchFiles: vi.fn(
+      (query: SearchQuery): Promise<SearchHits> =>
+        searchFiles(options.searchable ?? [], query, options.failures?.searchFiles),
+    ),
     // Records what was saved so a test can assert the content, and honours
     // the same conflict guard the real transports apply.
     writeFile: vi.fn(async (path: string, request: WriteRequest) => {

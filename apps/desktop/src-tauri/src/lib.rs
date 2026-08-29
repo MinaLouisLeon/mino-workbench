@@ -25,6 +25,7 @@ pub fn run() {
             commands::connection::disconnect,
             commands::fs::list_dir,
             commands::fs::stat,
+            commands::fs::search_files,
             commands::fs::read_file,
             commands::fs::write_file,
             commands::pty::open_pty,

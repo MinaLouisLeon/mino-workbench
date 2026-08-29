@@ -9,6 +9,8 @@ import type {
   PtySize,
   PtySpawnSpec,
   ReadFileOptions,
+  SearchHits,
+  SearchQuery,
   ShellProbe,
   StructuredOutput,
   StructuredRequest,
@@ -60,6 +62,10 @@ export class AgentTransport implements TransportClient {
 
   stat(_path: string): Promise<DirEntry> {
     return this.reject("stat");
+  }
+
+  searchFiles(_query: SearchQuery): Promise<SearchHits> {
+    return this.reject("search_files");
   }
 
   readFile(_path: string, _options?: ReadFileOptions): Promise<FilePayload> {

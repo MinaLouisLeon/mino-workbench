@@ -27,6 +27,10 @@ export function useWorkbenchLayout() {
     (next: number[]) => {
       const [tree] = next;
       if (tree === undefined) return;
+      // A zero means the sidebar is collapsed, not that it is one pixel wide.
+      // Storing it would reopen the workbench with a sidebar that expands to
+      // nothing, so the last real width is kept instead.
+      if (tree === 0) return;
       setSizes({ ...sizes, tree });
     },
     [setSizes, sizes],
