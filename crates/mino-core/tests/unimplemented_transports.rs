@@ -84,6 +84,15 @@ async fn assert_every_method_unimplemented(
         transport.probe_shell().await.unwrap_err(),
         kind
     ));
+
+    // The git surface is present rather than absent: `None` would read as
+    // "this target has no git", which is a different fact from "not written
+    // yet" and would send the reader to the wrong file.
+    let git = transport
+        .git()
+        .expect("an unbuilt git surface is still a surface");
+    assert!(is_unimplemented(git.repository().await.unwrap_err(), kind));
+    assert!(is_unimplemented(git.status().await.unwrap_err(), kind));
 }
 
 #[tokio::test]

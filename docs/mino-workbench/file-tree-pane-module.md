@@ -19,13 +19,20 @@ FileTreePane                       ← useFileTreePane (root, rows, selection)
             ├─ TreeRow.Indent      depth × 14px
             ├─ TreeRow.Chevron     ▸ / ▾, blank for files
             ├─ TreeRow.Icon        ■ dir · ● file · → symlink · ○ other
-            ├─ TreeRow.Label       dimmed when hidden, accent when selected
+            ├─ TreeRow.Label       dimmed when hidden or git-ignored, accent when selected
+            ├─ TreeRow.GitStatus   M / A / D / R / C / U / T / !, or nothing
             └─ TreeRow.Status      "Loading…" or that level's error
 ```
 
 Every part reads `useTreeRow()`; nothing is drilled past the provider. This is
 the project's compound-component rule applied to the one repeated list item in
 the app.
+
+`TreeRow.GitStatus` reads a *second* context, `GitStatusContext`, because git
+answers for the whole repository in one call and a row wants its own line out
+of it - see [git-module.md](git-module.md). It renders `null` when there is no
+repository, no git, or nothing read yet, which is what makes a folder that is
+not a checkout render exactly as it did before the part existed.
 
 ## Loading
 

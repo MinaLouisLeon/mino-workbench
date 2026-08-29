@@ -26,6 +26,27 @@ Defined in `crates/mino-core/src/transport.rs`. Mirrored one-for-one by
 | `probe_shell` (`transport.rs`) | Tauri `probe_shell` · agent `{"method":"probeShell"}` | – | `ShellProbe` |
 | *(stream)* | Tauri event `pty://<id>` · agent `{"result":"ptyEvent"}` | – | `PtyEvent` |
 
+## The git interface
+
+A **second** trait, `mino_core::transport::GitTransport`, reached from the
+first through `Transport::git() -> Option<&dyn GitTransport>` and mirrored in
+TypeScript as `client.git`. Twenty-five eventual git methods on one trait would
+make every implementation file and the stub macro grow for reasons that have
+nothing to do with cohesion - see `plan/decisions.md` D2.
+
+| Function (file) | Method · Endpoint | Params / Body | Returns |
+| --- | --- | --- | --- |
+| `repository` (`transport.rs`) | Tauri `git_repository` · agent *(not yet)* | – | `GitRepository \| null` |
+| `status` (`transport.rs`) | Tauri `git_status` · agent *(not yet)* | – | `GitStatus` |
+
+`repository` returning `null` is an **answer**, not a failure: most folders are
+not repositories, and the UI renders that as a quiet state. Git being absent
+from the target *is* a failure, reported once by this call so every git surface
+can go quiet for the session rather than failing per call.
+
+`status` rejects with `invalidArgument` when the folder is not a repository, so
+a caller that skipped `repository` is told rather than handed an empty status.
+
 ### The one deviation
 
 Rust's `open_pty` returns `PtyStream { session, events }` - a descriptor plus a
@@ -68,7 +89,24 @@ SearchHits       = { hits: SearchHit[], truncated: boolean, scanned: number }
 StructuredRequest  = { pipeline: string, params: Record<string,string>,
                        cwd: string | null, timeoutMs: number | null }
 StructuredOutput   = { value: unknown, stderr: string }
+
+GitRepository    = { root: string, branch: string | null, head: string | null,
+                     detached: boolean, upstream: string | null,
+                     ahead: number, behind: number }
+GitFileState     = "unmodified" | "modified" | "added" | "deleted" | "renamed"
+                 | "copied" | "untracked" | "ignored" | "conflicted"
+                 | "typeChanged"
+GitEntry         = { path: string, relativePath: string,
+                     index: GitFileState, worktree: GitFileState,
+                     originalPath: string | null }
+GitStatus        = { repository: GitRepository, entries: GitEntry[],
+                     truncated: boolean }
 ```
+
+`GitEntry` carries **two** states because staged-and-then-modified-again is a
+real condition: `index` is the staged side and `worktree` the unstaged one.
+`GitRepository.root` is the work tree root, which may sit above the connected
+root.
 
 ### Validation rules
 
@@ -83,6 +121,11 @@ StructuredOutput   = { value: unknown, stderr: string }
 | `StructuredRequest.timeoutMs` | Defaults to 10 000 ms, clamped to 60 000 ms | `timeout` |
 | `StructuredRequest.cwd` | Resolved through the path guard like any path | `pathEscapesRoot` |
 | `PtySize` | `cols`/`rows` raised to at least 1 | – |
+| every git argument | Fixed program text; argv only, never a command line | – |
+| git working directory (SSH) | Single-quoted; a path containing `'` is refused, not escaped | `invalidArgument` |
+| `GitStatus.entries` | Rows outside the connected root are dropped before returning | – |
+| `GitStatus.entries` | Capped at 10 000 (`MAX_STATUS_ENTRIES`) | `truncated: true` |
+| `git_status` outside a repository | Refused rather than answered with an empty status | `invalidArgument` |
 
 ### Error shape
 

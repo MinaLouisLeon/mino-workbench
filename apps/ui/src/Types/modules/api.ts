@@ -9,6 +9,10 @@
  *
  * The domain types themselves are generated from Rust (`./generated`), never
  * hand-written, so the two sides cannot drift.
+ *
+ * Git is the one surface that is not declared here. It is a second trait in
+ * Rust (`GitTransport`), so it is a second module here - see `./git` - and
+ * this file re-exports it so `@/Types` stays the one import path.
  */
 import type {
   ConnectionInfo,
@@ -29,6 +33,7 @@ import type {
   WriteRequest,
   TransportKind,
 } from "../generated";
+import type { GitClient, GitCommand } from "./git";
 
 /** Tauri command names. The only place these strings are written down. */
 export const TRANSPORT_COMMANDS = {
@@ -47,8 +52,13 @@ export const TRANSPORT_COMMANDS = {
   probeShell: "probe_shell",
 } as const;
 
+/**
+ * Every Tauri command name, both traits' worth. `invokeTransport` takes this,
+ * so a command that is not on one of the two maps cannot be invoked at all.
+ */
 export type TransportCommand =
-  (typeof TRANSPORT_COMMANDS)[keyof typeof TRANSPORT_COMMANDS];
+  | (typeof TRANSPORT_COMMANDS)[keyof typeof TRANSPORT_COMMANDS]
+  | GitCommand;
 
 /** Command argument payloads, one per command that takes arguments. */
 export type ConnectArgs = { target: ConnectionTarget };
@@ -109,4 +119,11 @@ export interface TransportClient {
   runStructured(request: StructuredRequest): Promise<StructuredOutput>;
   probeShell(): Promise<ShellProbe>;
   onPtyEvent(id: PtySessionId, handler: PtyEventHandler): Promise<Unsubscribe>;
+
+  /**
+   * The git surface. Always present on the client, because whether *this*
+   * target has git is a question Rust answers - a client that hid the property
+   * would be guessing before it had asked.
+   */
+  readonly git: GitClient;
 }

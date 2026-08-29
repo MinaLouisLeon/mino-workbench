@@ -5,8 +5,16 @@ is written, because both are expensive to reverse once nineteen features lean
 on them. D3 is not needed until phase 6 and is recorded here so it does not
 arrive as a surprise.
 
-Status of all three: **open**. They are the author's to make, not the
-implementer's.
+Status: **D1 and D2 resolved**, D3 still open.
+
+| # | Status | Resolution |
+| --- | --- | --- |
+| D1 | Resolved - option A | Shell out to the `git` binary with an argv array. Implemented in phase 1 |
+| D2 | Resolved - option B | A separate `GitTransport` trait, with the `CLAUDE.md` amendment. Implemented in phase 1 |
+| D3 | Open | Not needed until phase 6 |
+
+Each recommendation below was taken as written. What phase 1 actually built,
+and where, is in `docs/mino-workbench/git-module.md`.
 
 ---
 
@@ -74,7 +82,7 @@ see the risk below.
   transport needs option A anyway.
 - A moving target to pin and follow.
 
-### Recommendation
+### Recommendation - **taken**
 
 **Option A.** The deciding argument is not performance, it is that this app
 has two real transports and only option A serves both with one implementation.
@@ -88,6 +96,16 @@ existing `nu` probe, a `GitError` mapping git's exit codes to typed errors,
 and a rule written into the module doc that **no caller value is ever
 interpolated into a git command line** - argv only, exactly as
 `StructuredRequest` binds parameters rather than splicing them.
+
+**As built.** All three, with one shape changed. The probe is not a third trait
+method: `repository()` already has to reach git, so a machine without it is
+reported by that one call and the UI goes quiet for the session - a second way
+to ask would have been a second thing to keep in agreement with the first. Exit
+codes map through `git::repository_root` and `git::status_from` onto the
+existing `TransportError` variants rather than a new `GitError`, so the UI
+narrows on one discriminant as it already does. The argv rule lives in
+`crates/mino-core/src/git/command.rs`, which has a test asserting that no
+function there takes a caller value at all.
 
 ---
 
@@ -143,10 +161,17 @@ pub trait Transport: Send + Sync + 'static {
 client checkable against the Rust trait, and turns every call site into a
 match on a response enum. Rejected unless the author prefers it.
 
-### Recommendation
+### Recommendation - **taken**
 
 **Option B**, with the `CLAUDE.md` amendment written in the same PR that
 introduces it.
+
+**As built.** `Transport` keeps its thirteen methods and gains a fourteenth,
+`git()`, returning `Option<&dyn GitTransport>`. The stub macro is split in two
+(`stub.rs`, `stub_git.rs`) and an unbuilt git surface returns `Some(self)`
+rather than `None`, so a call fails with `Unimplemented` instead of the surface
+silently reading as "this target has no git". The `CLAUDE.md` amendment is
+under "The one rule".
 
 ---
 

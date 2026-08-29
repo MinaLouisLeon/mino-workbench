@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useTransport } from "@/context/TransportContext";
+import { useGitStatusContext } from "@/features/git/context/GitStatusContext";
 import { toTransportError, transportErrorMessage } from "@/lib/transportError";
 
 import { DraftStore } from "../drafts";
@@ -31,6 +32,10 @@ const IDLE: EditorState = {
 export function useFileEditor() {
   const viewer = useFileViewer();
   const transport = useTransport();
+  // A save is the one moment the working tree is known to have changed, so it
+  // is the one moment worth re-reading it. See `useGitStatus` for why that is
+  // an event and not a timer.
+  const { refresh: refreshGit } = useGitStatusContext();
   const [state, setState] = useState<EditorState>(IDLE);
   const drafts = useRef(new DraftStore());
 
@@ -82,6 +87,7 @@ export function useFileEditor() {
         expectedModifiedMs: state.savedModifiedMs,
       });
       drafts.current.clear(path);
+      refreshGit();
       setState((current) => ({
         ...current,
         baseline: draft,
@@ -102,7 +108,15 @@ export function useFileEditor() {
           error.kind === "conflict" ? VIEWER_COPY.conflict : transportErrorMessage(error),
       }));
     }
-  }, [transport, viewer.path, state.draft, state.baseline, state.savedModifiedMs, state.saving]);
+  }, [
+    transport,
+    refreshGit,
+    viewer.path,
+    state.draft,
+    state.baseline,
+    state.savedModifiedMs,
+    state.saving,
+  ]);
 
   // Drafts live in memory only, so closing the window with edits pending
   // would lose them without this.

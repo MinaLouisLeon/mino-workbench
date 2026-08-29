@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 
 use crate::error::{Result, TransportError};
-use crate::transport::Transport;
+use crate::transport::{GitTransport, Transport};
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
     PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
@@ -120,5 +120,11 @@ impl Transport for SshTransport {
     async fn probe_shell(&self) -> Result<ShellProbe> {
         let connected = self.connected().await?;
         Ok(connected.shell.clone())
+    }
+
+    /// The remote host's own git, over the exec channel. Present whether or
+    /// not the host has git installed - the first call is what says so.
+    fn git(&self) -> Option<&dyn GitTransport> {
+        Some(self)
     }
 }

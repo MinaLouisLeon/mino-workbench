@@ -230,3 +230,40 @@ refusing to.
 | TC-130 | **security** - SSH session | Search for `'; touch /tmp/pwned; '` | Treated as text: it simply matches nothing. Confirm no file was created on the host | `search_files` over SFTP | High |
 | TC-131 | SSH session | Search a remote tree | Remote files are found and rank the same way local ones do | `search_files` over SFTP | High |
 | TC-132 | Connected | Tab into the rail and through the sidebar | Every rail button is reachable and its focus ring is visible; Enter activates it | none | High |
+
+## 15. Git
+
+Every case here has a **not a repository** twin worth trying once: open a plain
+folder and confirm the workbench looks exactly as it did before git existed -
+no badges, no header strip, no error.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-133 | A git repository open | Look at the header | The branch name is shown beside the folder | `git_repository` | High |
+| TC-134 | A clean repository | Look at the header | No dirty marker | `git_status` | High |
+| TC-135 | Repository with an edited file | Look at the header | A dot marks the branch dirty; hovering explains it | `git_status` | High |
+| TC-136 | Branch tracking a remote, with unpushed commits | Look at the header | An up arrow and the count; hovering says "N commits to push" | `git_status` | Medium |
+| TC-137 | Branch behind its remote | Look at the header | A down arrow and the count | `git_status` | Medium |
+| TC-138 | Detached HEAD (`git checkout --detach`) | Look at the header | "detached" and the short sha, in the warning tone - not an empty space | `git_repository` | Medium |
+| TC-139 | Fresh `git init`, no commit yet | Open the folder | The branch name shows; hovering says it has no commits yet | `git_repository` | Medium |
+| TC-140 | Repository with an edited file | Look at the tree | An `M` beside the file, and only beside that file | `git_status` | High |
+| TC-141 | A newly created, unstaged file | Look at the tree | A `U` beside it | `git_status` | High |
+| TC-142 | `git add` a new file | Refocus the window | An `A` appears | `git_status` | High |
+| TC-143 | Stage a change, then edit the file again | Look at the tree | `M` - the unstaged side, which is the change you are making now | `git_status` | Medium |
+| TC-144 | A file deleted from disk but not from git | Look at the tree | A `D` beside it | `git_status` | Medium |
+| TC-145 | `git mv` a file, then look at the tree | The renamed file | An `R` beside the new name | `git_status` | Medium |
+| TC-146 | A repository with a merge conflict | Look at the tree | A `!` in the danger tone on the conflicted file | `git_status` | Medium |
+| TC-147 | A repository with `node_modules` or `target` ignored | Expand that folder in the tree | The rows are dimmed, like hidden files, and carry no badge | `git_status` | High |
+| TC-148 | Repository open, a file edited in the viewer | Press Ctrl+S | The badge appears within a moment, without touching anything else | `write_file`, then `git_status` | High |
+| TC-149 | Repository open | Edit a file in another program, then click back into the workbench | The badge updates on focus | `git_status` | High |
+| TC-150 | Repository open | Save several files quickly | One status call, not one per save (watch the log) | a single `git_status` | Medium |
+| TC-151 | A repository with `.gitignore` | Search for a name that exists only inside an ignored folder | Nothing is found | `search_files` | High |
+| TC-152 | A plain folder with a `generated/` directory | Search for a file inside it | It **is** found: with no repository there is nothing to ignore | `search_files` | High |
+| TC-153 | **security** - a repository whose root is above the open folder | Open a sub-directory, then look at the tree and header | The branch shows, but only files inside the open folder carry badges | `git_status` | High |
+| TC-154 | A repository with a filename containing a space and one containing an accent | Edit both | Both get badges, on the right rows | `git_status` | Medium |
+| TC-155 | **security** - SSH session on a remote repository | Look at the header and tree | The remote host's git answers; badges and branch behave as they do locally | `git_status` over SSH | High |
+| TC-156 | SSH session, a remote path containing a single quote | Open it | Refused with a clear sentence, not a mangled command | `git_status` refusing | High |
+| TC-157 | A machine with `git` renamed off PATH | Open a repository | "git is not available here" in the header, once. The tree, search and the terminal all still work | `git_repository` failing | High |
+| TC-158 | Repository open | Run `git commit` in the terminal pane while the workbench is idle | It succeeds: no index lock is held against it | none | High |
+| TC-159 | A repository with thousands of changes | Open it | The tree still responds; the list says it is partial rather than implying the rest is clean | `git_status` with `truncated` | Medium |
+| TC-160 | Repository open | Tab to a tree row with a badge with a screen reader on | The state is read as a word ("Modified"), not as the letter | none | High |

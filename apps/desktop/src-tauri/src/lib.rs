@@ -28,6 +28,8 @@ pub fn run() {
             commands::fs::search_files,
             commands::fs::read_file,
             commands::fs::write_file,
+            commands::git::git_repository,
+            commands::git::git_status,
             commands::pty::open_pty,
             commands::pty::write_pty,
             commands::pty::resize_pty,

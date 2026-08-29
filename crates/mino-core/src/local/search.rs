@@ -10,12 +10,18 @@
 //! every level. Containment needs no per-entry check: the walk only ever
 //! starts at the guarded root and only ever moves downwards, so nothing it
 //! reaches can be outside.
+//!
+//! Inside a repository the walk additionally honours `.gitignore`, by asking
+//! git once per search which paths it would not look at. That is an *addition*
+//! to the skip list, never a replacement: a folder with no repository, or a
+//! machine with no git, searches exactly as it did before, because the ignore
+//! set comes back empty and an empty set ignores nothing.
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
 use crate::error::{Result, TransportError};
-use crate::search::{is_skipped_directory, relative_to, Collector};
+use crate::search::{is_skipped_directory, relative_to, Collector, IgnoreSet};
 use crate::types::{EntryKind, SearchHits, SearchQuery};
 
 use super::fs;
@@ -25,13 +31,17 @@ use super::roots::RootGuard;
 /// filesystem work and a large tree would otherwise stall the async runtime
 /// for as long as it takes.
 pub async fn search(guard: RootGuard, query: SearchQuery) -> Result<SearchHits> {
-    tokio::task::spawn_blocking(move || walk(&guard, &query))
+    // Asked before the walk moves to a blocking thread, because it is one
+    // short async process call and the walk itself must stay synchronous.
+    // `ignored` never fails: it answers with an empty list instead.
+    let ignores = IgnoreSet::new(super::git::ignored(&guard.root_display()).await);
+    tokio::task::spawn_blocking(move || walk(&guard, &query, ignores))
         .await
         .map_err(|e| TransportError::io(format!("the search task failed: {e}")))?
 }
 
-fn walk(guard: &RootGuard, query: &SearchQuery) -> Result<SearchHits> {
-    let mut collector = Collector::new(query);
+fn walk(guard: &RootGuard, query: &SearchQuery, ignores: IgnoreSet) -> Result<SearchHits> {
+    let mut collector = Collector::new(query).with_ignores(ignores);
     let root = guard.root().to_path_buf();
     let root_display = guard.root_display();
 
@@ -48,8 +58,9 @@ fn walk(guard: &RootGuard, query: &SearchQuery) -> Result<SearchHits> {
             // `display_path`, so it is the string the UI will show.
             let path = entry.path.clone();
             let relative = relative_to(&root_display, &path);
-            let descend =
-                matches!(entry.kind, EntryKind::Directory) && !is_skipped_directory(&entry.name);
+            let descend = matches!(entry.kind, EntryKind::Directory)
+                && !is_skipped_directory(&entry.name)
+                && !collector.is_ignored(&relative);
             collector.offer(entry, relative);
             if descend {
                 queue.push_back(PathBuf::from(&path));

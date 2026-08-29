@@ -18,6 +18,7 @@
 | [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors |
 | [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
+| [git-module.md](git-module.md) | The git surface: one status call, tree badges, the header strip, `.gitignore` in search |
 | [components.md](components.md) | Shared presentational components and the compound tree row |
 | [state-store.md](state-store.md) | Contexts, hooks, what is persisted and what must never be |
 | [manual-testing.md](manual-testing.md) | The QA guide: every scenario, per OS |
@@ -33,8 +34,14 @@ Start screen → pick a folder → connect(local) → ConnectionInfo
 Tree row expand → list_dir(path) → nu `ls … | to json` → DirEntry[]
                                  ↘ nu missing/failed → std::fs listing → DirEntry[]
 
+Folder opened → git_repository → in a repo? → git_status → badges + header
+                              ↘ no  → nothing at all (not an error)
+                              ↘ git missing → one sentence, then quiet
+File saved / window focused → debounced git_status → badges refresh
+
 Rail icon → active view switches (or collapses, if already showing)
 Search typed → debounce → search_files(query) → walk + fuzzy rank → SearchHits
+                                              ↳ in a repo, .gitignore is skipped too
 Search hit    → selection context → read_file(path)
 
 Tree row (file) → selection context → read_file(path)

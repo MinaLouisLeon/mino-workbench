@@ -13,9 +13,15 @@ everything else is a hook local to its feature.
 | `TreeRowContext` | `features/file-tree/context/TreeRowContext.tsx` | one row's data and handlers | the row's parts |
 | `SidebarContext` | `features/sidebar/context/SidebarContext.tsx` | `activeView`, `collapsed`, `activate`, `setCollapsed` | the rail, the panel, the column hosting them |
 | `SearchRowContext` | `features/search/context/SearchRowContext.tsx` | one hit's data and handlers | the row's parts |
+| `GitStatusContext` | `features/git/context/GitStatusContext.tsx` | `availability`, `repository`, `entries` by path, `dirty`, `error`, `truncated`, `refresh` | tree rows, the header strip, the editor (to refresh after a save) |
 
 `TransportProvider` takes an optional `client`, which is the seam tests inject
 a fake through. Production calls `createTransport()`.
+
+`GitStatusProvider` is scoped to the workbench, wrapping `SidebarProvider`,
+because the header and the tree both read it: one `git status` for the window,
+not one per pane and never one per row. Rows *read* status; they are never
+handed it.
 
 ## Hooks
 
@@ -31,6 +37,8 @@ a fake through. Production calls `createTransport()`.
 | `useBreadcrumb` | `features/workbench/hooks/useBreadcrumb.ts` | structured `path split`, degrading to a TS split |
 | `useFileTree` | `features/file-tree/hooks/useFileTree.ts` | the lazy-load state machine |
 | `useFileTreePane` | `features/file-tree/hooks/useFileTreePane.ts` | root, rows, selection, activation |
+| `useGitStatus` | `features/git/hooks/useGitStatus.ts` | the two git calls, the stale-answer guard, and the refresh policy |
+| `useGitEntry` | `features/git/hooks/useGitEntry.ts` | one path's badge and ignored flag, looked up out of the status |
 | `useFileViewer` | `features/viewer/hooks/useFileViewer.ts` | reading the selected file, guard classification |
 | `useCodeMirror` | `features/viewer/hooks/useCodeMirror.ts` | the read-only editor instance |
 | `useXterm` | `features/terminal/hooks/useXterm.ts` | the terminal instance and its fit addon |
@@ -49,7 +57,8 @@ logic, it gets a hook.
 | `mino.sidebar.v1` | `{ activeView, collapsed }` | `localStorage` |
 
 **Nothing else.** No credentials, no private keys, no passphrases, no host
-secrets, no file contents, no directory listings. `usePersistentState` is for
+secrets, no file contents, no directory listings, and no git state - branch
+names, shas and status entries are read fresh and never written down. `usePersistentState` is for
 layout preferences; a write that fails (storage full or disabled) is swallowed
 rather than interrupting the session.
 

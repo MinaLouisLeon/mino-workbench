@@ -22,6 +22,8 @@ mod agent;
 mod command;
 mod connect;
 mod fs;
+mod git;
+mod git_run;
 mod handler;
 mod probe;
 mod pty;

@@ -4,8 +4,14 @@
 //! Directory listings prefer the structured Nushell channel and degrade to a
 //! plain filesystem walk when `nu` is missing or the pipeline fails, so the
 //! tree keeps working on a machine without Nushell.
+//!
+//! Git works the same way: `git.rs` shells out to the `git` binary with an
+//! argv array, and a machine without git gets one sentence saying so rather
+//! than a failure per call.
 
 mod fs;
+mod git;
+mod git_run;
 mod pipelines;
 mod pty;
 mod pty_spawn;

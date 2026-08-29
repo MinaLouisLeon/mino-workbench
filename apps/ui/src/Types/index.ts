@@ -6,3 +6,4 @@
  */
 export * from "./generated";
 export * from "./modules/api";
+export * from "./modules/git";

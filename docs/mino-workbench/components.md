@@ -28,6 +28,7 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | workbench | `WorkbenchHeader` | Label, breadcrumb, "Close folder" |
 | workbench | `Breadcrumb` | Segments from Nushell `path split`, degrading to a TS split |
 | file-tree | `FileTreePane` / `TreeRows` / `TreeRow` / `TreeRowParts` | Compound row, see the flow doc |
+| git | `GitBranchStatus` | Header strip: branch, dirty marker, ahead/behind. Takes no props - reads `GitStatusContext` |
 | sidebar | `ActivityBar` / `ActivityBarButton` | The icon rail; one button per entry in `views.ts` |
 | sidebar | `SidebarPanel` | Renders every view, hiding the inactive ones rather than unmounting them |
 | search | `SearchPane` / `SearchField` / `SearchResults` | Presentational; wiring in `useFileSearch` |
@@ -49,6 +50,7 @@ shape, so this is the pattern to copy for a third:
     <TreeRow.Chevron />
     <TreeRow.Icon />
     <TreeRow.Label />
+    <TreeRow.GitStatus />
     <TreeRow.Status />
   </TreeRow>
 </TreeRowProvider>
@@ -56,7 +58,9 @@ shape, so this is the pattern to copy for a third:
 
 Each part calls `useTreeRow()` - and each `SearchRow` part calls
 `useSearchRow()`. Reordering or replacing a part needs no prop changes
-anywhere.
+anywhere. `TreeRow.GitStatus` is what adding a part looks like: a new member on
+the compound, never a change to an existing one, so a row without git renders
+precisely as it did before.
 
 ## Icons
 

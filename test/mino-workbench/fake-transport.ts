@@ -18,10 +18,14 @@ import type {
   WriteRequest,
 } from "@/Types";
 
+import type { FakeGitOptions } from "./fake-git";
+import { createFakeGit } from "./fake-git";
 import { searchFiles } from "./fake-search";
 import { NU_PRESENT_PROBE } from "./fake-shell";
 
-export interface FakeTransportOptions {
+export { CLEAN_REPOSITORY, makeGitEntry } from "./fake-git";
+
+export interface FakeTransportOptions extends FakeGitOptions {
   listings?: Record<string, DirEntry[]>;
   files?: Record<string, FilePayload>;
   failures?: Record<string, TransportError>;
@@ -123,6 +127,7 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
         options.structured ?? { value: [], stderr: "" },
     ),
     probeShell: vi.fn(async () => options.shellProbe ?? NU_PRESENT_PROBE),
+    git: createFakeGit(options),
     onPtyEvent: vi.fn(async (id: PtySessionId, handler: PtyEventHandler) => {
       listeners.set(id, handler);
       return () => listeners.delete(id);
