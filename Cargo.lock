@@ -2477,7 +2477,7 @@ dependencies = [
 
 [[package]]
 name = "mino-agent"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -2492,7 +2492,7 @@ dependencies = [
 
 [[package]]
 name = "mino-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2513,7 +2513,7 @@ dependencies = [
 
 [[package]]
 name = "mino-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "mino-core",
  "serde",
