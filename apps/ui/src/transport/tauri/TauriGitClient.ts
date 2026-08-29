@@ -10,6 +10,7 @@ import type {
 import { GIT_COMMANDS } from "@/Types";
 
 import { invokeTransport } from "./invoke";
+import { TauriGitHistoryClient } from "./TauriGitHistoryClient";
 
 /**
  * The desktop git surface: one method per Tauri command, no logic of its own.
@@ -22,7 +23,7 @@ import { invokeTransport } from "./invoke";
  * Confirming a discard is the panel's job and guarding a path is Rust's, and
  * putting either here would be a second place to keep them right.
  */
-export class TauriGitClient implements GitClient {
+export class TauriGitClient extends TauriGitHistoryClient implements GitClient {
   repository(): Promise<GitRepository | null> {
     return invokeTransport(GIT_COMMANDS.repository);
   }

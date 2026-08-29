@@ -2,20 +2,31 @@
 //!
 //! Dispatch only, in the same spirit as `transport_impl.rs`: resolve the
 //! guard, run one git call, hand the output to [`crate::git`] to interpret.
-//! Nothing here parses anything.
+//! Nothing here parses anything - the helpers are in `git_read.rs` and
+//! `git_history.rs`, and the parsers are shared with the SSH transport.
 //!
 //! Every call runs with the *session* root as its working directory, not the
 //! repository root. Git walks up to find the repository itself, and starting
 //! anywhere else would mean choosing a directory the path guard has not
 //! already approved.
+//!
+//! Two kinds of caller value are made safe here, once, so no method below can
+//! forget: paths through [`guard_paths`], and revisions through
+//! [`crate::git::revision`].
 
 use async_trait::async_trait;
 
 use crate::error::Result;
-use crate::git::{self, command, guard::guard_paths, paths::PathStyle};
+use crate::git::{self, command, paths::PathStyle, revision};
 use crate::transport::GitTransport;
-use crate::types::{CommitRequest, GitCommit, GitRepository, GitStatus};
+use crate::types::{
+    CommitRequest, DiffRequest, GitBlame, GitCommit, GitCommitDetail, GitDiff, GitLog,
+    GitRepository, GitStatus, LogRequest,
+};
 
+use super::git_guard::expect_success;
+use super::git_history as history;
+use super::git_read::toplevel;
 use super::git_run::{run, run_with_input};
 use super::LocalTransport;
 
@@ -75,54 +86,33 @@ impl GitTransport for LocalTransport {
         // human-readable output, which changes between versions.
         git::commit::parse(&run(&root, &command::head_commit_argv()).await?)
     }
-}
 
-impl LocalTransport {
-    /// The session root, and the caller's paths made safe to hand to git.
-    ///
-    /// One place, so no mutating method can forget it - `discard` in
-    /// particular must never be reachable with an unguarded path.
-    fn guarded(&self, paths: &[String]) -> Result<(String, Vec<String>)> {
+    async fn diff(&self, request: DiffRequest) -> Result<GitDiff> {
+        let (root, path) = self.guarded_one(request.path.as_deref())?;
+        let request = DiffRequest {
+            against: revision::validate_optional(request.against.as_deref())?,
+            ..request
+        };
+        history::diff(&root, &request, path.as_deref()).await
+    }
+
+    async fn log(&self, request: LogRequest) -> Result<GitLog> {
+        let (root, path) = self.guarded_one(request.path.as_deref())?;
+        history::log(&root, &request, path.as_deref()).await
+    }
+
+    async fn show(&self, revision: &str) -> Result<GitCommitDetail> {
         let root = self.guard()?.root_display();
-        let guarded = guard_paths(&root, paths, PathStyle::local())?;
-        Ok((root, guarded))
+        history::show(&root, &revision::validate(revision)?).await
     }
-}
 
-/// Runs a mutating call and turns a non-zero exit into git's own sentence.
-async fn expect_success(root: &str, argv: Vec<String>, what: &str) -> Result<()> {
-    let output = run_with_input(root, &argv, None).await?;
-    if output.succeeded() {
-        return Ok(());
+    async fn commit_diff(&self, revision: &str, path: Option<&str>) -> Result<GitDiff> {
+        let (root, path) = self.guarded_one(path)?;
+        history::commit_diff(&root, &revision::validate(revision)?, path.as_deref()).await
     }
-    // Never reported as a partial success: the batch either ran or it did not,
-    // and saying otherwise would leave the UI unable to describe the index.
-    Err(crate::error::TransportError::shell(git::message_or(
-        &output, what,
-    )))
-}
 
-/// The work tree root containing `root`, or `None` when there is not one.
-async fn toplevel(root: &str) -> Result<Option<String>> {
-    let output = run(root, &command::repository_argv()).await?;
-    // `--show-toplevel` answers in forward slashes even on Windows. Putting
-    // it back into the platform's own style is what lets the entry paths
-    // compare against `DirEntry::path` without special cases downstream.
-    Ok(git::repository_root(&output)?.map(|found| PathStyle::local().normalise(&found)))
-}
-
-/// The repository-relative paths git would not look at, for the search walk.
-///
-/// Not on the trait: search asks for this on its own behalf, and a failure -
-/// git absent, not a repository, a call that timed out - is answered with an
-/// empty list rather than an error. Losing search entirely because a folder
-/// is not a repository would be a regression, so this degrades instead.
-pub async fn ignored(root: &str) -> Vec<String> {
-    match run(root, &command::ignored_argv()).await {
-        Ok(output) => git::ignored_from(&output),
-        Err(err) => {
-            tracing::debug!(%err, "git could not answer for ignored paths; searching everything");
-            Vec::new()
-        }
+    async fn blame(&self, path: &str) -> Result<GitBlame> {
+        let (root, guarded) = self.guarded(std::slice::from_ref(&path.to_string()))?;
+        history::blame(&root, &guarded[0]).await
     }
 }

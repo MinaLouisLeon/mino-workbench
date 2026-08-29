@@ -23,6 +23,8 @@ mod command;
 mod connect;
 mod fs;
 mod git;
+mod git_guard;
+mod git_history;
 mod git_run;
 mod handler;
 mod probe;

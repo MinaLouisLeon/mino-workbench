@@ -1,4 +1,4 @@
-import type { GitEntry, GitFileState } from "@/Types";
+import type { GitChangedFile, GitCommit, GitEntry, GitFileState } from "@/Types";
 
 /**
  * Which side of the index a row belongs to.
@@ -65,6 +65,21 @@ export interface CommitState {
   /** The commit that just landed, shown briefly. */
   landed: string | null;
   commit: () => void;
+}
+
+export interface HistoryState {
+  commits: GitCommit[];
+  /** True when git had more than this page. Drives "show more". */
+  more: boolean;
+  loading: boolean;
+  error: string | null;
+  /** The expanded commit, or `null`. */
+  openSha: string | null;
+  /** The open commit's files, or `null` while they are being read. */
+  files: GitChangedFile[] | null;
+  openCommit: (sha: string) => void;
+  openFile: (file: GitChangedFile) => void;
+  loadMore: () => void;
 }
 
 export interface SourceControlState {

@@ -18,7 +18,7 @@
 | [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors |
 | [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
-| [git-module.md](git-module.md) | The git surface: status, tree badges, the header strip, `.gitignore` in search, and staging, discard and commit |
+| [git-module.md](git-module.md) | The git surface: status and badges, staging, discard and commit, and reading history - diff, log, show and blame |
 | [components.md](components.md) | Shared presentational components and the compound tree row |
 | [state-store.md](state-store.md) | Contexts, hooks, what is persisted and what must never be |
 | [manual-testing.md](manual-testing.md) | The QA guide: every scenario, per OS |
@@ -45,6 +45,12 @@ Group + / −        → git_stage / git_unstage([])       → git_status
 Row discard        → confirm naming the file → git_discard → git_status
                    ↘ cancelled → nothing is called at all
 Message + Commit   → git_commit (message on stdin) → git_log → "Committed <sha>"
+
+Viewer header Diff → git_diff(path)        → hunks, parsed in Rust
+Viewer header Blame→ git_blame(path)       → a CodeMirror gutter (on demand)
+History            → git_log(limit, skip)  → commits, paged
+History commit     → git_show(sha)         → the files it touched
+History file       → git_commit_diff(sha)  → that commit's diff in the viewer
 
 Rail icon → active view switches (or collapses, if already showing)
 Search typed → debounce → search_files(query) → walk + fuzzy rank → SearchHits

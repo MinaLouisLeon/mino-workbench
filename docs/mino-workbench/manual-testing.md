@@ -308,3 +308,47 @@ disk afterwards rather than trusting the UI.
 | TC-190 | A commit message containing an apostrophe, over SSH | Commit it | It commits with the apostrophe intact - the message goes on stdin, not the command line | `git_commit` over SSH | High |
 | TC-191 | A fresh `git init`, one file staged | Unstage it | It unstages. (`git restore --staged` would fail here; the app uses `git reset`) | `git_unstage` | Medium |
 | TC-192 | Source control open | Tab through the panel with a screen reader | Every control has a spoken name; the state letter is read as a word | none | High |
+
+## 17. Diff, history and blame
+
+Everything here is read-only - nothing in this section can change a
+repository - so the risk is a **wrong answer** rather than lost work. Check the
+answers against `git diff`, `git log` and `git blame` in the terminal pane
+rather than trusting the pane.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-193 | A repository, a file open in the viewer | Look at the pane header | File / Diff, and Blame beside them | none | High |
+| TC-194 | A file with no changes | Click Diff | "No changes", not an empty pane or an error | `git_diff` | High |
+| TC-195 | An edited file | Click Diff | The same hunks `git diff <file>` shows, with both line numbers | `git_diff` | High |
+| TC-196 | An edited file, diff showing | Compare the line numbers against `git diff` | Added lines number only on the right, removed only on the left | `git_diff` | High |
+| TC-197 | Connected | Open a file, click Diff, then File | Nothing is read for the diff until Diff is clicked (watch the log) | one `git_diff` | Medium |
+| TC-198 | **data loss** - a file with unsaved edits in the viewer | Click Diff, then File | The unsaved text is still there, and the cursor is where you left it | none | High |
+| TC-199 | **data loss** - unsaved edits, diff showing | Press Ctrl+S | Nothing is saved from diff mode; the draft is intact when you return | none | High |
+| TC-200 | A binary file with changes | Click Diff | "Binary file", not a wall of noise | `git_diff` | High |
+| TC-201 | A renamed file (`git mv`, staged) | Open the new name, click Diff | It says what it was renamed from | `git_diff` | Medium |
+| TC-202 | A file with no trailing newline, edited | Click Diff | The affected line is marked "no newline at end of file" | `git_diff` | Medium |
+| TC-203 | A very large generated file, heavily changed | Click Diff | It comes back promptly and says the diff was cut short | `git_diff` with `truncated` | Medium |
+| TC-204 | A file with a space and one with an accent in the name | Diff each | The right file, named correctly | `git_diff` | High |
+| TC-205 | A repository with commits | Open source control and scroll to History | Subject, author, relative time and short sha for each | `git_log` | High |
+| TC-206 | History showing | Hover a commit's time | The full timestamp | none | Low |
+| TC-207 | History showing | Click a commit | Its files appear beneath it, with the same state letters the tree uses | `git_show` | High |
+| TC-208 | A commit expanded | Click it again | It closes | none | Medium |
+| TC-209 | A commit expanded | Click one of its files | The viewer shows **that commit's** diff for it, not the working tree's | `git_commit_diff` | High |
+| TC-210 | A commit that deleted a file | Expand it and click the deleted file | Its diff still shows, even though the file is not on disk | `git_commit_diff` | High |
+| TC-211 | A repository with more than 25 commits | Scroll to the end of History | "Show more", and clicking it appends the next page without repeating | `git_log` with `skip` | High |
+| TC-212 | A repository with fewer than 25 commits | Look at the end of History | No "Show more" | none | Medium |
+| TC-213 | A fresh `git init`, no commits | Open source control | "No commits yet.", not an error | `git_log` | High |
+| TC-214 | The repository's very first commit | Expand it in History and open a file | Its diff shows every line as added; a root commit still has a diff | `git_commit_diff` | High |
+| TC-215 | A file open in the viewer | Click Blame | Author and short sha beside each line, aligned with the code | `git_blame` | High |
+| TC-216 | Blame showing | Look at a block of lines from one commit | The author appears once, on the first line of the block | `git_blame` | Medium |
+| TC-217 | Blame showing | Hover a gutter entry | Short sha, author and the commit's subject | none | Medium |
+| TC-218 | Blame showing | Click Blame again | The gutter goes away and the file is unchanged | none | High |
+| TC-219 | Connected | Open a file and watch the log | Blame is **not** read until it is turned on | none until clicked | High |
+| TC-220 | Blame showing | Click Diff | Blame is not offered in diff mode - there are no lines to attribute | none | Medium |
+| TC-221 | A file not in HEAD (brand new, untracked) | Turn on Blame | A clear sentence, and the file still readable underneath | `git_blame` failing | High |
+| TC-222 | **security** - connected | Try to diff or blame a path outside the folder (via the transport) | Refused with `pathEscapesRoot`, and nothing is read | refused | High |
+| TC-223 | **security** - connected | Try a revision of `--upload-pack=touch pwned` (via the transport) | Refused with a sentence; confirm no file named `pwned` was created | refused before git ran | High |
+| TC-224 | **security** - SSH session on a remote repository | Diff, log and blame | All three run on the remote host and agree with `git` there | over SSH | High |
+| TC-225 | Blame on a large file (5 000+ lines) | Turn it on | It arrives without freezing the pane; the gutter lines up | `git_blame` | Medium |
+| TC-226 | Diff showing | Tab through the diff with a screen reader | Each line is read as added, removed or unchanged - not by its colour | none | High |

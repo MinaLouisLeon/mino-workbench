@@ -48,6 +48,12 @@ export const SOURCE_CONTROL_COPY = {
   truncated:
     "Git reported more changes than this list can show. Commit or stash some to see the rest.",
 
+  history: "History",
+  historyLoading: "Reading history…",
+  historyEmpty: "No commits yet.",
+  showMore: "Show more",
+  commitTouchedNothing: "This commit touched no files.",
+
   /** The destructive confirmation. */
   discardTitle: "Discard changes?",
   discardOne: (name: string) =>

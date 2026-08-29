@@ -10,6 +10,7 @@ test/
   <module>/
     fake-transport.ts    shared fixtures for the module (not a test file)
     fake-git.ts          the fake git surface (not a test file)
+    fake-git-history.ts  the fake diff/log/blame surface (not a test file)
     harness.tsx          render helpers (not a test file)
     unit/*.test.ts       pure logic, hooks, transforms
     integration/*.test.tsx  component render tests
@@ -34,7 +35,7 @@ test/
 
 | Module | Folder | Covers |
 | --- | --- | --- |
-| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation |
+| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation, diff mode and the blame gutter |
 
 ## The transport is the test seam
 

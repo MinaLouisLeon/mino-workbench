@@ -6,6 +6,7 @@ import type { ConnectionTarget, TransportClient } from "@/Types";
 import { TransportProvider } from "@/context/TransportContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
 import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
+import { ViewerModeProvider } from "@/features/viewer/context/ViewerModeContext";
 import { SelectionProvider } from "@/features/workbench/context/SelectionContext";
 import {
   SessionProvider,
@@ -57,7 +58,9 @@ export function renderConnected(
         <DraftsProvider>
           <GitStatusProvider>
             <SelectionProvider>
-              <Connected target={target}>{ui}</Connected>
+              <ViewerModeProvider>
+                <Connected target={target}>{ui}</Connected>
+              </ViewerModeProvider>
             </SelectionProvider>
           </GitStatusProvider>
         </DraftsProvider>
@@ -74,7 +77,9 @@ export function withProviders(client: TransportClient) {
         <SessionProvider>
           <DraftsProvider>
             <GitStatusProvider>
-              <SelectionProvider>{children}</SelectionProvider>
+              <SelectionProvider>
+                <ViewerModeProvider>{children}</ViewerModeProvider>
+              </SelectionProvider>
             </GitStatusProvider>
           </DraftsProvider>
         </SessionProvider>

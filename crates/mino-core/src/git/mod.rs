@@ -23,13 +23,17 @@
 //! that way. That is the whole probe: a third trait method would be a second
 //! thing to keep in agreement with the first.
 
+pub mod blame;
 pub mod branch;
 pub mod command;
 pub mod commit;
+pub mod diff;
 pub mod guard;
+pub mod history;
 mod interpret;
 pub mod paths;
 pub mod porcelain;
+pub mod revision;
 
 use crate::error::TransportError;
 

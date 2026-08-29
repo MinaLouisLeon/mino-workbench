@@ -16,6 +16,7 @@ import type {
   GitRepository,
   GitStatus,
 } from "../generated";
+import type { GitHistoryClient } from "./git-history";
 
 /**
  * Tauri command names for the git surface. The only place these strings are
@@ -40,12 +41,13 @@ export type GitCommitArgs = { request: CommitRequest };
  * Mirrors `mino_core::transport::GitTransport`, reached from the client the
  * way `Transport::git()` reaches it in Rust: `transport.git.status()`.
  *
- * Split the way the trait is: two methods that read the working tree, and four
- * that change it. The reading half serves the tree's badges, the header's
- * branch and dirty marker, and the search walk's ignore predicate, all from one
- * `GitStatus`. The changing half is the source control panel.
+ * Split the way the trait is. Two methods read the working tree - they serve
+ * the tree's badges, the header's branch and dirty marker, and the search
+ * walk's ignore predicate, all from one `GitStatus`. Four change it: the
+ * source control panel. And five more read *history*, which live in
+ * `./git-history` and are inherited here so `client.git` stays one surface.
  */
-export interface GitClient {
+export interface GitClient extends GitHistoryClient {
   /**
    * The repository containing the connected root, or `null` when the root is
    * not inside one. `null` is an answer, not a failure: most folders are not

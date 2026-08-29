@@ -1,12 +1,18 @@
 import type {
   CommitRequest,
+  DiffRequest,
+  GitBlame,
   GitClient,
   GitCommit,
+  GitCommitDetail,
+  GitDiff,
+  GitLog,
   GitRepository,
   GitStatus,
+  LogRequest,
   TransportError,
 } from "@/Types";
-import { GIT_COMMANDS } from "@/Types";
+import { GIT_COMMANDS, GIT_HISTORY_COMMANDS } from "@/Types";
 
 /**
  * The browser git surface: declared, not built.
@@ -49,5 +55,25 @@ export class AgentGitClient implements GitClient {
 
   commit(_request: CommitRequest): Promise<GitCommit> {
     return this.reject(GIT_COMMANDS.commit);
+  }
+
+  diff(_request: DiffRequest): Promise<GitDiff> {
+    return this.reject(GIT_HISTORY_COMMANDS.diff);
+  }
+
+  log(_request: LogRequest): Promise<GitLog> {
+    return this.reject(GIT_HISTORY_COMMANDS.log);
+  }
+
+  show(_revision: string): Promise<GitCommitDetail> {
+    return this.reject(GIT_HISTORY_COMMANDS.show);
+  }
+
+  commitDiff(_revision: string, _path: string | null): Promise<GitDiff> {
+    return this.reject(GIT_HISTORY_COMMANDS.commitDiff);
+  }
+
+  blame(_path: string): Promise<GitBlame> {
+    return this.reject(GIT_HISTORY_COMMANDS.blame);
   }
 }

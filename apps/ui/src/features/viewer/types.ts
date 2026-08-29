@@ -1,4 +1,4 @@
-import type { FilePayload } from "@/Types";
+import type { FilePayload, GitBlameLine, GitFileDiff } from "@/Types";
 
 export type ViewerStatus = "empty" | "loading" | "ready" | "error";
 
@@ -32,6 +32,46 @@ export interface EditorState {
   justSaved: boolean;
 }
 
+/**
+ * What the viewer is showing.
+ *
+ * `file` is the editor. `diff` is read-only and never touches the draft - the
+ * two are different renderings of the same selection, not different documents.
+ */
+export type ViewerMode = "file" | "diff";
+
+export interface ViewerModeContextValue {
+  mode: ViewerMode;
+  setMode: (mode: ViewerMode) => void;
+  /** The blame gutter. Off by default: it changes the editor's shape. */
+  blame: boolean;
+  toggleBlame: () => void;
+  /**
+   * When set, `diff` shows what this commit did to the file rather than what
+   * the working tree has. Written by the history list.
+   */
+  commit: string | null;
+  showCommitFile: (revision: string, path: string, name: string) => void;
+  clearCommit: () => void;
+}
+
+export type DiffStatus = "idle" | "loading" | "ready" | "error";
+
+export interface FileDiffState {
+  status: DiffStatus;
+  /** `null` when the file has no changes to show. */
+  file: GitFileDiff | null;
+  truncated: boolean;
+  error: string | null;
+}
+
+export interface BlameState {
+  /** Keyed by one-based line number, so the gutter is a lookup. */
+  byLine: ReadonlyMap<number, GitBlameLine>;
+  loading: boolean;
+  error: string | null;
+}
+
 export interface CodeMirrorOptions {
   /** Initial document. Only read when `revision` changes. */
   content: string | null;
@@ -41,6 +81,15 @@ export interface CodeMirrorOptions {
   revision: number;
   onChange: (doc: string) => void;
   onSave: () => void;
+  /**
+   * False while the diff is showing. The editor stays mounted rather than
+   * being torn down and rebuilt, so an unsaved draft and the cursor survive a
+   * trip through diff mode - but a hidden CodeMirror measures itself wrong, so
+   * it is told when it comes back.
+   */
+  visible: boolean;
+  /** Per-line authorship for the gutter, or `null` when blame is off. */
+  blame: ReadonlyMap<number, GitBlameLine> | null;
 }
 
 export interface EditorStatusProps {

@@ -34,7 +34,7 @@ pub async fn search(guard: RootGuard, query: SearchQuery) -> Result<SearchHits> 
     // Asked before the walk moves to a blocking thread, because it is one
     // short async process call and the walk itself must stay synchronous.
     // `ignored` never fails: it answers with an empty list instead.
-    let ignores = IgnoreSet::new(super::git::ignored(&guard.root_display()).await);
+    let ignores = IgnoreSet::new(super::git_read::ignored(&guard.root_display()).await);
     tokio::task::spawn_blocking(move || walk(&guard, &query, ignores))
         .await
         .map_err(|e| TransportError::io(format!("the search task failed: {e}")))?

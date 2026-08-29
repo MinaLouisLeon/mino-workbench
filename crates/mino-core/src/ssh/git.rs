@@ -10,16 +10,18 @@
 
 use async_trait::async_trait;
 
-use crate::error::{Result, TransportError};
-use crate::git::{self, command, guard::guard_paths, paths::PathStyle};
+use crate::error::Result;
+use crate::git::{self, command, paths::PathStyle, revision};
 use crate::transport::GitTransport;
-use crate::types::{CommitRequest, GitCommit, GitRepository, GitStatus};
+use crate::types::{
+    CommitRequest, DiffRequest, GitBlame, GitCommit, GitCommitDetail, GitDiff, GitLog,
+    GitRepository, GitStatus, LogRequest,
+};
 
+use super::git_guard::{expect_success, guard_many, guard_optional};
+use super::git_history::{self as history, toplevel};
 use super::git_run::{run, run_with_input};
-use super::handler::ClientHandler;
 use super::SshTransport;
-
-use russh::client::Handle;
 
 #[async_trait]
 impl GitTransport for SshTransport {
@@ -47,7 +49,7 @@ impl GitTransport for SshTransport {
     async fn stage(&self, paths: &[String]) -> Result<()> {
         let connected = self.connected().await?;
         let root = connected.root.root().to_string();
-        let guarded = guard_paths(&root, paths, PathStyle::posix())?;
+        let guarded = guard_many(&root, paths)?;
         expect_success(
             &connected.handle,
             &root,
@@ -60,7 +62,7 @@ impl GitTransport for SshTransport {
     async fn unstage(&self, paths: &[String]) -> Result<()> {
         let connected = self.connected().await?;
         let root = connected.root.root().to_string();
-        let guarded = guard_paths(&root, paths, PathStyle::posix())?;
+        let guarded = guard_many(&root, paths)?;
         expect_success(
             &connected.handle,
             &root,
@@ -73,7 +75,7 @@ impl GitTransport for SshTransport {
     async fn discard(&self, paths: &[String]) -> Result<()> {
         let connected = self.connected().await?;
         let root = connected.root.root().to_string();
-        let guarded = guard_paths(&root, paths, PathStyle::posix())?;
+        let guarded = guard_many(&root, paths)?;
         expect_success(
             &connected.handle,
             &root,
@@ -101,26 +103,43 @@ impl GitTransport for SshTransport {
         let described = run(&connected.handle, &root, &command::head_commit_argv()).await?;
         git::commit::parse(&described)
     }
-}
 
-/// Runs a mutating call and turns a non-zero exit into git's own sentence.
-async fn expect_success(
-    handle: &Handle<ClientHandler>,
-    root: &str,
-    argv: Vec<String>,
-    what: &str,
-) -> Result<()> {
-    let output = run_with_input(handle, root, &argv, None).await?;
-    if output.succeeded() {
-        return Ok(());
+    async fn diff(&self, request: DiffRequest) -> Result<GitDiff> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let path = guard_optional(&root, request.path.as_deref())?;
+        let request = DiffRequest {
+            against: revision::validate_optional(request.against.as_deref())?,
+            ..request
+        };
+        history::diff(&connected.handle, &root, &request, path.as_deref()).await
     }
-    Err(TransportError::shell(git::message_or(&output, what)))
-}
 
-async fn toplevel(
-    handle: &russh::client::Handle<super::handler::ClientHandler>,
-    root: &str,
-) -> Result<Option<String>> {
-    let output = run(handle, root, &command::repository_argv()).await?;
-    Ok(git::repository_root(&output)?.map(|found| PathStyle::posix().normalise(&found)))
+    async fn log(&self, request: LogRequest) -> Result<GitLog> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let path = guard_optional(&root, request.path.as_deref())?;
+        history::log(&connected.handle, &root, &request, path.as_deref()).await
+    }
+
+    async fn show(&self, rev: &str) -> Result<GitCommitDetail> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        history::show(&connected.handle, &root, &revision::validate(rev)?).await
+    }
+
+    async fn commit_diff(&self, rev: &str, path: Option<&str>) -> Result<GitDiff> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let path = guard_optional(&root, path)?;
+        let rev = revision::validate(rev)?;
+        history::commit_diff(&connected.handle, &root, &rev, path.as_deref()).await
+    }
+
+    async fn blame(&self, path: &str) -> Result<GitBlame> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let guarded = guard_many(&root, std::slice::from_ref(&path.to_string()))?;
+        history::blame(&connected.handle, &root, &guarded[0]).await
+    }
 }

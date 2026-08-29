@@ -83,3 +83,28 @@ is there:
 
 Binary and oversized files are still refused, so there is nothing to edit in
 the cases the read guards reject.
+
+## Modes
+
+The viewer shows one file three ways: as text (the editor), as a unified diff,
+and - in file mode - with a blame gutter. `ViewerModeContext` holds which, and
+the history list writes to it when it opens a file at a commit.
+
+**The editor is hidden, not unmounted.** Rebuilding it on every toggle would
+restore the document from the draft, which is correct but loses the cursor.
+That puts one constraint on this pane's markup: the editor element keeps a
+single position in the tree, and the mode conditionals sit *beside* it rather
+than around it. Moving it between branches would remount it and quietly undo
+the whole arrangement. It is also told when it becomes visible again, because
+a CodeMirror laid out at zero height measures itself wrong and comes back
+blank.
+
+**Diff mode does not require the file to be readable.** A commit's diff is
+worth showing for a file that was deleted afterwards, or one past the size
+ceiling: in both cases there is no content to read and a real change to look
+at.
+
+**Blame is off by default and read on demand.** It is the most expensive call
+on the transport, and turning it on rebuilds the view - which is why it is an
+explicit toggle rather than something that happens on open. See
+[git-module.md](git-module.md).

@@ -25,4 +25,35 @@ export const VIEWER_COPY = {
    */
   conflict:
     "This file changed on disk after you opened it, so it was not overwritten — your edits are still here. Copy anything you need, then reopen the file to load the newer version.",
+
+  /** The mode toggle. Two words, because they sit in a narrow header. */
+  modeFile: "File",
+  modeDiff: "Diff",
+  modeFileHint: "Show the file's contents",
+  modeDiffHint: "Show what changed",
+  blameOn: "Blame",
+  blameHint: "Show who last changed each line",
+  blameLoading: "Reading blame…",
+
+  diffLoading: "Reading the diff…",
+  diffErrorTitle: "Could not read the diff",
+  diffEmptyTitle: "No changes",
+  diffEmptyBody: "This file matches what git has for it.",
+  diffBinaryTitle: "Binary file",
+  diffBinaryBody:
+    "Git cannot show a readable diff for this file, so there is nothing to render.",
+  diffTruncated:
+    "This diff is longer than the viewer will show. What is here is the start of it.",
+  noNewline: "no newline at end of file",
+  renamedFrom: (oldPath: string) => `Renamed from ${oldPath}`,
+
+  /**
+   * Said in words beside the `+`/`-` sign, which is decorative. A reader who
+   * cannot see the colour cannot read the sign either.
+   */
+  diffLineKind: {
+    added: "added",
+    removed: "removed",
+    context: "unchanged",
+  },
 } as const;

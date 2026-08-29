@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { GitClient, TransportClient, TransportError } from "@/Types";
-import { GIT_COMMANDS, TRANSPORT_COMMANDS } from "@/Types";
+import {
+  GIT_COMMANDS,
+  GIT_HISTORY_COMMANDS,
+  TRANSPORT_COMMANDS,
+} from "@/Types";
 import { AgentTransport } from "@/transport";
 
 import { createFakeTransport } from "../fake-transport";
@@ -36,7 +40,15 @@ const GIT_METHODS: GitMethod[] = [
   "unstage",
   "discard",
   "commit",
+  "diff",
+  "log",
+  "show",
+  "commitDiff",
+  "blame",
 ];
+
+/** Both command maps, since `GitClient` spans two of them. */
+const ALL_GIT_COMMANDS = { ...GIT_COMMANDS, ...GIT_HISTORY_COMMANDS };
 
 /** One call each, with an argument where the method takes one. */
 function callGit(git: GitClient, method: GitMethod): Promise<unknown> {
@@ -47,6 +59,16 @@ function callGit(git: GitClient, method: GitMethod): Promise<unknown> {
       return git.status();
     case "commit":
       return git.commit({ message: "m", all: false, amend: false });
+    case "diff":
+      return git.diff({ path: null, staged: false, against: null });
+    case "log":
+      return git.log({ limit: null, skip: 0, path: null });
+    case "show":
+      return git.show("HEAD");
+    case "commitDiff":
+      return git.commitDiff("HEAD", null);
+    case "blame":
+      return git.blame("/root/a.txt");
     default:
       return git[method](["/root/a.txt"]);
   }
@@ -70,9 +92,9 @@ describe("transport client contract", () => {
   });
 
   it("names one Tauri command per git method", () => {
-    expect(Object.keys(GIT_COMMANDS)).toHaveLength(GIT_METHODS.length);
+    expect(Object.keys(ALL_GIT_COMMANDS)).toHaveLength(GIT_METHODS.length);
     expect(GIT_COMMANDS.repository).toBe("git_repository");
-    expect(GIT_COMMANDS.status).toBe("git_status");
+    expect(GIT_HISTORY_COMMANDS.blame).toBe("git_blame");
   });
 });
 
@@ -102,7 +124,7 @@ describe("agent transport", () => {
   it.each(GIT_METHODS)("rejects git.%s with a typed unimplemented error", async (method) => {
     await expect(callGit(agent.git, method)).rejects.toEqual({
       kind: "unimplemented",
-      detail: { feature: GIT_COMMANDS[method], transport: "remoteAgent" },
+      detail: { feature: ALL_GIT_COMMANDS[method], transport: "remoteAgent" },
     } satisfies TransportError);
   });
 });

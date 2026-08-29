@@ -69,8 +69,11 @@ pub async fn git_commit(
 }
 
 /// The git surface of the current transport, or the typed error saying this
-/// target has none.
-fn git(transport: &Arc<dyn Transport>) -> Result<&dyn mino_core::GitTransport, TransportError> {
+/// target has none. Shared with `git_history.rs`, so both halves reach it the
+/// same way.
+pub(super) fn git(
+    transport: &Arc<dyn Transport>,
+) -> Result<&dyn mino_core::GitTransport, TransportError> {
     transport
         .git()
         .ok_or_else(|| TransportError::unimplemented(transport.kind(), "git"))

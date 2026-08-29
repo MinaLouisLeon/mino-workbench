@@ -13,6 +13,7 @@
 //! | --- | --- |
 //! | Paths | Guarded by [`crate::git::guard`] first, then placed after a `--` separator so a path beginning with a dash is never read as a flag |
 //! | The commit message | Never in argv at all. Git reads it from **stdin** |
+//! | Revisions | Validated by [`crate::git::revision`], and placed *in front* of the `--` separator - behind it, git would read `main` as a filename |
 //!
 //! The message rule is not a nicety. Over SSH the argv has to become a command
 //! line, and `ssh::command::quote` refuses a value containing a single quote -
@@ -24,9 +25,11 @@
 //! working directory, and that is quoted (and refused when it cannot be) by
 //! `ssh::command::quote`.
 
+mod history;
 mod read;
 mod write;
 
+pub use history::{blame_argv, commit_diff_argv, diff_argv, log_argv, show_argv, COMMIT_FORMAT};
 pub use read::{
     branch_argv, head_commit_argv, ignored_argv, repository_argv, status_argv, version_argv,
 };

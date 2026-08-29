@@ -47,6 +47,42 @@ macro_rules! unimplemented_git_transport {
             ) -> $crate::Result<$crate::types::GitCommit> {
                 Err($crate::TransportError::unimplemented($kind, "git_commit"))
             }
+
+            async fn diff(
+                &self,
+                _request: $crate::types::DiffRequest,
+            ) -> $crate::Result<$crate::types::GitDiff> {
+                Err($crate::TransportError::unimplemented($kind, "git_diff"))
+            }
+
+            async fn log(
+                &self,
+                _request: $crate::types::LogRequest,
+            ) -> $crate::Result<$crate::types::GitLog> {
+                Err($crate::TransportError::unimplemented($kind, "git_log"))
+            }
+
+            async fn show(
+                &self,
+                _revision: &str,
+            ) -> $crate::Result<$crate::types::GitCommitDetail> {
+                Err($crate::TransportError::unimplemented($kind, "git_show"))
+            }
+
+            async fn commit_diff(
+                &self,
+                _revision: &str,
+                _path: Option<&str>,
+            ) -> $crate::Result<$crate::types::GitDiff> {
+                Err($crate::TransportError::unimplemented(
+                    $kind,
+                    "git_commit_diff",
+                ))
+            }
+
+            async fn blame(&self, _path: &str) -> $crate::Result<$crate::types::GitBlame> {
+                Err($crate::TransportError::unimplemented($kind, "git_blame"))
+            }
         }
     };
 }

@@ -9,6 +9,7 @@ import { SOURCE_CONTROL_COPY } from "../messages";
 import { ChangeGroup } from "./ChangeGroup";
 import { CommitBox } from "./CommitBox";
 import { DiscardConfirm } from "./DiscardConfirm";
+import { HistorySection } from "./HistorySection";
 
 const GROUP_ACTION_CLASSES =
   "rounded p-1 text-textFaint hover:bg-surfaceHover hover:text-text focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong disabled:opacity-40";
@@ -130,6 +131,10 @@ export function SourceControlPane() {
               </ChangeGroup>
             ))
           )}
+
+          {/* Below the working tree, because what changed *now* is the reason
+              the panel is open; history is what you scroll to. */}
+          <HistorySection active={availability === "ready"} />
         </div>
 
         <DiscardConfirm

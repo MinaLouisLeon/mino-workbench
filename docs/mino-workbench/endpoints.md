@@ -42,6 +42,11 @@ nothing to do with cohesion - see `plan/decisions.md` D2.
 | `unstage` (`transport/git.rs`) | Tauri `git_unstage` · agent *(not yet)* | `paths: string[]` | `void` |
 | `discard` (`transport/git.rs`) | Tauri `git_discard` · agent *(not yet)* | `paths: string[]` | `void` |
 | `commit` (`transport/git.rs`) | Tauri `git_commit` · agent *(not yet)* | `request: CommitRequest` | `GitCommit` |
+| `diff` (`transport/git.rs`) | Tauri `git_diff` · agent *(not yet)* | `request: DiffRequest` | `GitDiff` |
+| `log` (`transport/git.rs`) | Tauri `git_log` · agent *(not yet)* | `request: LogRequest` | `GitLog` |
+| `show` (`transport/git.rs`) | Tauri `git_show` · agent *(not yet)* | `revision: string` | `GitCommitDetail` |
+| `commit_diff` (`transport/git.rs`) | Tauri `git_commit_diff` · agent *(not yet)* | `revision: string`, `path: string \| null` | `GitDiff` |
+| `blame` (`transport/git.rs`) | Tauri `git_blame` · agent *(not yet)* | `path: string` | `GitBlame` |
 
 `repository` returning `null` is an **answer**, not a failure: most folders are
 not repositories, and the UI renders that as a quiet state. Git being absent
@@ -114,6 +119,26 @@ GitStatus        = { repository: GitRepository, entries: GitEntry[],
 CommitRequest    = { message: string, all: boolean, amend: boolean }
 GitCommit        = { sha: string, shortSha: string, summary: string,
                      author: string, timestampMs: number }
+DiffRequest      = { path: string | null, staged: boolean,
+                     against: string | null }
+GitDiffLineKind  = "context" | "added" | "removed"
+GitDiffLine      = { kind: GitDiffLineKind, content: string,
+                     oldLine: number | null, newLine: number | null,
+                     noNewline: boolean }
+GitHunk          = { oldStart: number, oldLines: number, newStart: number,
+                     newLines: number, header: string, lines: GitDiffLine[] }
+GitFileDiff      = { relativePath: string, oldPath: string | null,
+                     binary: boolean, hunks: GitHunk[] }
+GitDiff          = { files: GitFileDiff[], truncated: boolean }
+LogRequest       = { limit: number | null, skip: number, path: string | null }
+GitLog           = { commits: GitCommit[], truncated: boolean }
+GitChangedFile   = { relativePath: string, oldPath: string | null,
+                     state: GitFileState }
+GitCommitDetail  = { commit: GitCommit, files: GitChangedFile[] }
+GitBlameLine     = { line: number, sha: string, shortSha: string,
+                     author: string, timestampMs: number, summary: string }
+GitBlame         = { relativePath: string, lines: GitBlameLine[],
+                     truncated: boolean }
 ```
 
 `GitEntry` carries **two** states because staged-and-then-modified-again is a
@@ -143,6 +168,11 @@ root.
 | a batch of git paths | All-or-nothing: one refused path runs none of them | `pathEscapesRoot` |
 | `CommitRequest.message` | Non-empty after trimming, at most 64 KiB. Sent on stdin, never in argv | `invalidArgument` |
 | `git_commit` with nothing staged | Refused rather than a silent no-op | `invalidArgument` |
+| every revision (`against`, `show`, `commit_diff`) | No leading `-`; only `[A-Za-z0-9/._-^~@{}:]`; at most 256 chars. Placed *in front* of `--` | `invalidArgument` |
+| `GitDiff` | Cut at 20 000 lines (`MAX_DIFF_LINES`); a binary file reports `binary` and no hunks | `truncated: true` |
+| `LogRequest.limit` | Defaults to 50, clamped to 500 | – |
+| `git_log` on an unborn branch | An empty page, not an error | – |
+| `GitBlame` | Cut at 50 000 lines (`MAX_BLAME_LINES`) | `truncated: true` |
 
 ### Error shape
 

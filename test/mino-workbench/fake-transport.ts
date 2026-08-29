@@ -24,6 +24,7 @@ import { searchFiles } from "./fake-search";
 import { NU_PRESENT_PROBE } from "./fake-shell";
 
 export { CLEAN_REPOSITORY, makeGitEntry } from "./fake-git";
+export { EMPTY_DIFF, line, makeFileDiff, makeHunk } from "./fake-git-history";
 
 export interface FakeTransportOptions extends FakeGitOptions {
   listings?: Record<string, DirEntry[]>;

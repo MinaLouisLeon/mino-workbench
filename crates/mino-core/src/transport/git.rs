@@ -11,10 +11,12 @@
 //! [`crate::git::command`] for the rules that keep caller values out of a
 //! command line.
 //!
-//! ## The two halves
+//! ## The halves
 //!
-//! The read methods answer questions and cannot lose anything. The four
-//! mutating ones change the repository, and share one contract:
+//! The read methods answer questions and cannot lose anything - `status` and
+//! `repository` say what the tree looks like now, and `diff`, `log`, `show`
+//! and `blame` say what happened. The four mutating ones change the
+//! repository, and share one contract:
 //!
 //! - **Every path is guarded first.** [`crate::git::guard`] rules on each one
 //!   against the *session* root before it can reach argv, on both transports.
@@ -29,7 +31,10 @@
 use async_trait::async_trait;
 
 use crate::error::Result;
-use crate::types::{CommitRequest, GitCommit, GitRepository, GitStatus};
+use crate::types::{
+    CommitRequest, DiffRequest, GitBlame, GitCommit, GitCommitDetail, GitDiff, GitLog,
+    GitRepository, GitStatus, LogRequest,
+};
 
 #[async_trait]
 pub trait GitTransport: Send + Sync + 'static {
@@ -81,4 +86,39 @@ pub trait GitTransport: Send + Sync + 'static {
     /// message travels on stdin and never through argv - see
     /// [`crate::types::CommitRequest`].
     async fn commit(&self, request: CommitRequest) -> Result<GitCommit>;
+
+    /// A file's diff, or the whole tree's when `request.path` is `None`.
+    ///
+    /// Already parsed into hunks with line numbers on both sides. A UI that
+    /// read a patch itself would be a second implementation of git's format,
+    /// and with two transports eventually two disagreeing ones.
+    ///
+    /// Bounded like every other walk here: cut at
+    /// [`crate::types::MAX_DIFF_LINES`], and `truncated` says so. A binary
+    /// file reports `binary: true` and no hunks rather than megabytes of
+    /// noise.
+    async fn diff(&self, request: DiffRequest) -> Result<GitDiff>;
+
+    /// Commits, newest first, bounded and paged by `skip`.
+    ///
+    /// An unborn branch answers with an empty page rather than an error: a
+    /// repository with no commits yet has no history, which is a state and not
+    /// a failure.
+    async fn log(&self, request: LogRequest) -> Result<GitLog>;
+
+    /// One commit with the files it touched.
+    async fn show(&self, revision: &str) -> Result<GitCommitDetail>;
+
+    /// The diff one commit introduced, for the history view.
+    ///
+    /// Separate from [`GitTransport::diff`] because it is a different question:
+    /// `diff` compares two states a caller names, and this asks what one commit
+    /// did - including a root commit, which has no parent to compare against.
+    async fn commit_diff(&self, revision: &str, path: Option<&str>) -> Result<GitDiff>;
+
+    /// Per-line authorship for one file.
+    ///
+    /// On demand only. Blame is the most expensive read on this interface and
+    /// nothing should ask for it just because a file was opened.
+    async fn blame(&self, path: &str) -> Result<GitBlame>;
 }

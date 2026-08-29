@@ -110,6 +110,27 @@ async fn assert_every_method_unimplemented(
             .unwrap_err(),
         kind
     ));
+    assert!(is_unimplemented(
+        git.diff(mino_core::types::DiffRequest::worktree())
+            .await
+            .unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.log(mino_core::types::LogRequest::new())
+            .await
+            .unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(git.show("HEAD").await.unwrap_err(), kind));
+    assert!(is_unimplemented(
+        git.commit_diff("HEAD", None).await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.blame("/srv/app/x").await.unwrap_err(),
+        kind
+    ));
 }
 
 #[tokio::test]

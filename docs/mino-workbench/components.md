@@ -29,7 +29,8 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | workbench | `Breadcrumb` | Segments from Nushell `path split`, degrading to a TS split |
 | file-tree | `FileTreePane` / `TreeRows` / `TreeRow` / `TreeRowParts` | Compound row, see the flow doc |
 | git | `GitBranchStatus` | Header strip: branch, dirty marker, ahead/behind. Takes no props - reads `GitStatusContext` |
-| source-control | `SourceControlPane` / `ChangeGroup` / `ChangeRow` / `ChangeRowParts` / `CommitBox` / `DiscardConfirm` | The third rail view. `DiscardConfirm` is an `alertdialog` whose confirm button names the consequence |
+| source-control | `SourceControlPane` / `ChangeGroup` / `ChangeRow` / `ChangeRowParts` / `CommitBox` / `DiscardConfirm` / `HistorySection` | The third rail view. `DiscardConfirm` is an `alertdialog` whose confirm button names the consequence |
+| viewer | `ViewerModeToggle` / `DiffView` / `DiffLines` | File / Diff / Blame. The toggle takes no props - it reads `ViewerModeContext`, which the history list also writes to |
 | sidebar | `ActivityBar` / `ActivityBarButton` | The icon rail; one button per entry in `views.ts` |
 | sidebar | `SidebarPanel` | Renders every view, hiding the inactive ones rather than unmounting them |
 | search | `SearchPane` / `SearchField` / `SearchResults` | Presentational; wiring in `useFileSearch` |

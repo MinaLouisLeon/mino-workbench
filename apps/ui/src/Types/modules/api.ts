@@ -34,6 +34,7 @@ import type {
   TransportKind,
 } from "../generated";
 import type { GitClient, GitCommand } from "./git";
+import type { GitHistoryCommand } from "./git-history";
 
 /** Tauri command names. The only place these strings are written down. */
 export const TRANSPORT_COMMANDS = {
@@ -58,7 +59,8 @@ export const TRANSPORT_COMMANDS = {
  */
 export type TransportCommand =
   | (typeof TRANSPORT_COMMANDS)[keyof typeof TRANSPORT_COMMANDS]
-  | GitCommand;
+  | GitCommand
+  | GitHistoryCommand;
 
 /** Command argument payloads, one per command that takes arguments. */
 export type ConnectArgs = { target: ConnectionTarget };
