@@ -7,8 +7,8 @@
 //! a regression, not the expected answer.
 
 use mino_core::types::{
-    ConnectionTarget, PtySessionId, PtySize, PtySpawnSpec, ReadFileOptions, StructuredRequest,
-    TransportKind,
+    ConnectionTarget, PtySessionId, PtySize, PtySpawnSpec, ReadFileOptions, SearchQuery,
+    StructuredRequest, TransportKind,
 };
 use mino_core::{RemoteAgentTransport, Transport, TransportError};
 
@@ -38,6 +38,13 @@ async fn assert_every_method_unimplemented(
     ));
     assert!(is_unimplemented(
         transport.stat("/").await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        transport
+            .search_files(SearchQuery::new("main"))
+            .await
+            .unwrap_err(),
         kind
     ));
     assert!(is_unimplemented(

@@ -12,6 +12,7 @@
 pub mod error;
 pub mod local;
 pub mod remote;
+pub mod search;
 pub mod shell;
 pub mod ssh;
 pub mod stub;

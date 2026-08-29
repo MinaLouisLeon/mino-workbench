@@ -11,13 +11,13 @@ use crate::shell;
 use crate::transport::Transport;
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
-    PtyStream, ReadFileOptions, ShellKind, ShellProbe, StructuredOutput, StructuredRequest,
-    TransportKind, WriteRequest,
+    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellKind, ShellProbe, StructuredOutput,
+    StructuredRequest, TransportKind, WriteRequest,
 };
 
 use super::pty::SpawnRequest;
 use super::roots::{self, RootGuard};
-use super::{fs, read, structured, write, LocalTransport};
+use super::{fs, read, search, structured, write, LocalTransport};
 
 #[async_trait]
 impl Transport for LocalTransport {
@@ -74,6 +74,10 @@ impl Transport for LocalTransport {
 
     async fn stat(&self, path: &str) -> Result<DirEntry> {
         fs::stat(&self.guard()?, path)
+    }
+
+    async fn search_files(&self, query: SearchQuery) -> Result<SearchHits> {
+        search::search(self.guard()?, query).await
     }
 
     async fn read_file(&self, path: &str, options: ReadFileOptions) -> Result<FilePayload> {

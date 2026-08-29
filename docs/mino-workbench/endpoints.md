@@ -16,6 +16,7 @@ Defined in `crates/mino-core/src/transport.rs`. Mirrored one-for-one by
 | `disconnect` (`transport.rs`) | Tauri `disconnect` · agent `{"method":"disconnect"}` | – | `void` |
 | `list_dir` (`transport.rs`) | Tauri `list_dir` · agent `{"method":"listDir"}` | `path: string` | `DirEntry[]` |
 | `stat` (`transport.rs`) | Tauri `stat` · agent `{"method":"stat"}` | `path: string` | `DirEntry` |
+| `search_files` (`transport.rs`) | Tauri `search_files` · agent `{"method":"searchFiles"}` | `query: SearchQuery` | `SearchHits` |
 | `read_file` (`transport.rs`) | Tauri `read_file` · agent `{"method":"readFile"}` | `path: string`, `options: ReadFileOptions` | `FilePayload` |
 | `open_pty` (`transport.rs`) | Tauri `open_pty` · agent `{"method":"openPty"}` | `spec: PtySpawnSpec` | `PtySession` (Rust: `PtyStream`) |
 | `write_pty` (`transport.rs`) | Tauri `write_pty` · agent `{"method":"writePty"}` | `id: PtySessionId`, `data: string` | `void` |
@@ -59,6 +60,11 @@ PtyEvent         = { type: "output", data: string }
                  | { type: "error",  data: string }
 ShellProbe       = { nuAvailable: boolean, nuPath: string | null,
                      fallbackProgram: string, fallbackLabel: string }
+SearchQuery      = { query: string, limit: number | null,
+                     includeHidden: boolean, includeDirectories: boolean }
+SearchHit        = { entry: DirEntry, relativePath: string, score: number,
+                     matchIndices: number[] }
+SearchHits       = { hits: SearchHit[], truncated: boolean, scanned: number }
 StructuredRequest  = { pipeline: string, params: Record<string,string>,
                        cwd: string | null, timeoutMs: number | null }
 StructuredOutput   = { value: unknown, stderr: string }

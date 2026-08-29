@@ -94,7 +94,7 @@ removed from PATH for the session.
 | ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
 | --- | --- | --- | --- | --- | --- |
 | TC-43 | Connected | Drag both splitters, quit, relaunch, reopen the folder | The split sizes are restored | none | Medium |
-| TC-44 | Connected | Inspect local storage | Only `mino.layout.v1` is present; no path, credential, key or file content | none | High |
+| TC-44 | Connected | Inspect local storage | Only `mino.layout.v1` and `mino.sidebar.v1` are present; no path, credential, key or file content | none | High |
 | TC-45 | Connected | Collapse the terminal pane to its minimum, then expand it | No crash; the shell reflows and stays usable | `resize_pty` with cols and rows of at least 1 | Medium |
 | TC-46 | Connected | Tab from the header through all three panes | Every pane is reachable; focus rings are visible against the pane background | none | High |
 
@@ -207,3 +207,26 @@ refusing to.
 | TC-112 | SSH session, a remote text file open | Edit and save | The remote file changes. Confirm on the host | `write_file` over SFTP | High |
 | TC-113 | **security** - SSH session | Try to save outside the remote root | Refused with `pathEscapesRoot`; nothing is created on the host | `write_file` refusing | High |
 | TC-114 | Read-only file (permissions) | Try to save | Refused with a permission message; the editor keeps the text | `write_file` returning `permissionDenied` | Medium |
+
+## 14. Sidebar and search
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-115 | Connected | Click the Search icon in the rail | The panel switches to search; the Files icon is no longer lit | none | High |
+| TC-116 | Search showing | Click the Search icon again | The panel collapses to just the rail; the editor and terminal take the width | none | High |
+| TC-117 | Sidebar collapsed | Click any rail icon | The panel reopens at the width it had before | none | High |
+| TC-118 | Connected | Expand a few tree folders, switch to Search and back | The folders are still expanded | none | High |
+| TC-119 | Connected | Drag the sidebar's splitter fully shut | The panel collapses and no rail icon stays lit | none | Medium |
+| TC-120 | Sidebar collapsed | Quit, relaunch, reopen the folder | It reopens collapsed, on the same view, at its old width | none | Medium |
+| TC-121 | Connected | Type part of a filename in Search | Matching files appear, filename first with its folder beside it, matched letters highlighted | `search_files` | High |
+| TC-122 | Connected | Type initials only, e.g. `ftp` for `FileTreePane.tsx` | The file is found: letters match in order, not as a substring | `search_files` | High |
+| TC-123 | Connected | Type a word quickly | One search runs, not one per letter (watch the log) | a single `search_files` | Medium |
+| TC-124 | Search results showing | Click a result | The file opens in the viewer, exactly as a tree row would | `read_file` | High |
+| TC-125 | A repo with `node_modules` or `target` | Search for a name that exists in both your source and there | Only the source file is listed | `search_files` | High |
+| TC-126 | A very large tree | Search a common letter | It comes back promptly and says it is showing the best matches only | `search_files` with `truncated` | Medium |
+| TC-127 | Connected | Search for something that matches nothing | "No matching files", not an empty pane | `search_files` | Medium |
+| TC-128 | Search results showing | Clear the box with the X | Back to the prompt; no stale results | none | Medium |
+| TC-129 | Connected | Search, then change the working folder | The box empties; no result from the old folder remains | none | High |
+| TC-130 | **security** - SSH session | Search for `'; touch /tmp/pwned; '` | Treated as text: it simply matches nothing. Confirm no file was created on the host | `search_files` over SFTP | High |
+| TC-131 | SSH session | Search a remote tree | Remote files are found and rank the same way local ones do | `search_files` over SFTP | High |
+| TC-132 | Connected | Tab into the rail and through the sidebar | Every rail button is reachable and its focus ring is visible; Enter activates it | none | High |

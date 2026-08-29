@@ -18,7 +18,8 @@ use async_trait::async_trait;
 use crate::error::Result;
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
-    PtyStream, ReadFileOptions, ShellProbe, StructuredOutput, StructuredRequest, WriteRequest,
+    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
+    StructuredRequest, WriteRequest,
 };
 
 #[async_trait]
@@ -38,6 +39,18 @@ pub trait Transport: Send + Sync + 'static {
     async fn list_dir(&self, path: &str) -> Result<Vec<DirEntry>>;
 
     async fn stat(&self, path: &str) -> Result<DirEntry>;
+
+    /// Walks the connected root looking for names matching `query`.
+    ///
+    /// The counterpart to `list_dir`'s one level: this is the only method
+    /// that descends. It is bounded rather than exhaustive - by a result
+    /// limit, an entry cap and a wall-clock deadline, all in
+    /// [`crate::search`] - and says so through [`SearchHits::truncated`],
+    /// because a search that never returns is worse than a partial answer.
+    ///
+    /// Matching and ranking happen in [`crate::search::fuzzy`], not in the
+    /// implementation, so every transport orders results identically.
+    async fn search_files(&self, query: SearchQuery) -> Result<SearchHits>;
 
     /// Enforces the size ceiling and the binary sniff before reading, so an
     /// oversized or binary file never reaches the UI as content.

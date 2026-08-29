@@ -11,6 +11,7 @@ mod pty;
 mod pty_spawn;
 mod read;
 mod roots;
+mod search;
 mod structured;
 mod transport_impl;
 mod write;

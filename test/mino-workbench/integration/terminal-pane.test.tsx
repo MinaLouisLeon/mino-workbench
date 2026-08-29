@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { TerminalPane } from "@/features/terminal/components/TerminalPane";
 
-import { NU_MISSING_PROBE, createFakeTransport } from "../fake-transport";
+import { createFakeTransport } from "../fake-transport";
+import { NU_MISSING_PROBE } from "../fake-shell";
 import { renderConnected } from "../harness";
 
 /**

@@ -1,4 +1,6 @@
-use mino_core::types::{DirEntry, FilePayload, ReadFileOptions, WriteRequest};
+use mino_core::types::{
+    DirEntry, FilePayload, ReadFileOptions, SearchHits, SearchQuery, WriteRequest,
+};
 use mino_core::TransportError;
 use tauri::State;
 
@@ -15,6 +17,14 @@ pub async fn list_dir(
 #[tauri::command]
 pub async fn stat(state: State<'_, AppState>, path: String) -> Result<DirEntry, TransportError> {
     state.current()?.stat(&path).await
+}
+
+#[tauri::command]
+pub async fn search_files(
+    state: State<'_, AppState>,
+    query: SearchQuery,
+) -> Result<SearchHits, TransportError> {
+    state.current()?.search_files(query).await
 }
 
 #[tauri::command]

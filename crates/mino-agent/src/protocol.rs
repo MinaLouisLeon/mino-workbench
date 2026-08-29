@@ -7,7 +7,8 @@
 
 use mino_core::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtyEvent, PtySession, PtySessionId,
-    PtySize, PtySpawnSpec, ReadFileOptions, ShellProbe, StructuredOutput, StructuredRequest,
+    PtySize, PtySpawnSpec, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
+    StructuredRequest,
 };
 use mino_core::TransportError;
 use serde::{Deserialize, Serialize};
@@ -39,6 +40,9 @@ pub enum AgentRequest {
     Stat {
         path: String,
     },
+    SearchFiles {
+        query: SearchQuery,
+    },
     ReadFile {
         path: String,
         options: ReadFileOptions,
@@ -69,6 +73,7 @@ pub enum AgentResponse {
     Connected(ConnectionInfo),
     Listing(Vec<DirEntry>),
     Stat(DirEntry),
+    Search(SearchHits),
     File(FilePayload),
     PtyOpened(PtySession),
     Structured(StructuredOutput),

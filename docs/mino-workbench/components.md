@@ -23,17 +23,24 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | start-screen | `StartScreen` | Presentational; wiring in `useConnectionOptions` |
 | start-screen | `ConnectionOption` | One entry point; shared by local and SSH so a third is a data change |
 | workbench | `AppShell` | Start screen until connected, `Workbench` after |
-| workbench | `Workbench` | Three resizable panes, persisted splits |
+| workbench | `Workbench` | Provides the sidebar's state around `WorkbenchPanes` |
+| workbench | `WorkbenchPanes` | The rail plus three resizable panes, persisted splits |
 | workbench | `WorkbenchHeader` | Label, breadcrumb, "Close folder" |
 | workbench | `Breadcrumb` | Segments from Nushell `path split`, degrading to a TS split |
 | file-tree | `FileTreePane` / `TreeRows` / `TreeRow` / `TreeRowParts` | Compound row, see the flow doc |
+| sidebar | `ActivityBar` / `ActivityBarButton` | The icon rail; one button per entry in `views.ts` |
+| sidebar | `SidebarPanel` | Renders every view, hiding the inactive ones rather than unmounting them |
+| search | `SearchPane` / `SearchField` / `SearchResults` | Presentational; wiring in `useFileSearch` |
+| search | `SearchRow` / `SearchRowParts` | Compound row, like the tree's |
+| search | `HighlightedText` | Marks the characters the Rust matcher matched |
 | viewer | `ViewerPane` | CodeMirror mount plus guard states |
 | terminal | `TerminalPane` | xterm mount plus notices |
 
-## The compound row
+## The compound rows
 
-`TreeRow` is the only repeated list item in the app, so it is built as a
-compound component:
+Repeated list items are built as compound components. There are two: `TreeRow`
+in the file tree and `SearchRow` in the search results. Both follow the same
+shape, so this is the pattern to copy for a third:
 
 ```tsx
 <TreeRowProvider value={{ row, selected, onActivate, onExpandKey }}>
@@ -47,8 +54,18 @@ compound component:
 </TreeRowProvider>
 ```
 
-Each part calls `useTreeRow()`. Reordering or replacing a part needs no prop
-changes anywhere.
+Each part calls `useTreeRow()` - and each `SearchRow` part calls
+`useSearchRow()`. Reordering or replacing a part needs no prop changes
+anywhere.
+
+## Icons
+
+`lucide-react` supplies every icon, imported one at a time so only what is used
+is bundled. Icons take `size` and `strokeWidth` and inherit `currentColor`, so
+they are coloured by the same Tailwind tokens as the text beside them - never
+by a `color` prop. The file tree's row glyphs are the exception and stay
+Unicode characters: they sit in a monospace column where a drawn icon would not
+align.
 
 ## Colours
 

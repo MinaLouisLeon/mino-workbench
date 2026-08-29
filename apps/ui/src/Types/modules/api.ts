@@ -21,6 +21,8 @@ import type {
   PtySize,
   PtySpawnSpec,
   ReadFileOptions,
+  SearchHits,
+  SearchQuery,
   ShellProbe,
   StructuredOutput,
   StructuredRequest,
@@ -34,6 +36,7 @@ export const TRANSPORT_COMMANDS = {
   disconnect: "disconnect",
   listDir: "list_dir",
   stat: "stat",
+  searchFiles: "search_files",
   readFile: "read_file",
   writeFile: "write_file",
   openPty: "open_pty",
@@ -57,6 +60,7 @@ export type PtyIdArgs = { id: PtySessionId };
 export type WritePtyArgs = PtyIdArgs & { data: string };
 export type ResizePtyArgs = PtyIdArgs & { size: PtySize };
 export type RunStructuredArgs = { request: StructuredRequest };
+export type SearchFilesArgs = { query: SearchQuery };
 
 export type PtyEventHandler = (event: PtyEvent) => void;
 /** Returned by `onPtyEvent`; calling it detaches the listener. */
@@ -78,6 +82,16 @@ export interface TransportClient {
   disconnect(): Promise<void>;
   listDir(path: string): Promise<DirEntry[]>;
   stat(path: string): Promise<DirEntry>;
+
+  /**
+   * Walks the connected root for names matching `query.query`, ranked.
+   *
+   * The counterpart to `listDir`'s single level, and the only call that
+   * descends. Bounded rather than exhaustive - by a result limit, an entry cap
+   * and a deadline, all enforced in Rust - and `SearchHits.truncated` says so
+   * when the answer is partial.
+   */
+  searchFiles(query: SearchQuery): Promise<SearchHits>;
   readFile(path: string, options?: ReadFileOptions): Promise<FilePayload>;
 
   /**
