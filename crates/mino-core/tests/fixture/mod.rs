@@ -1,9 +1,18 @@
 //! The search fixture, shared by `local_search.rs` and
 //! `local_search_guards.rs` so the two suites cannot drift onto different
 //! trees and then disagree about what the walk should have found.
+//!
+//! `allow(dead_code)` for the whole module: Cargo compiles it into every
+//! integration test binary that declares it, and no single suite uses all of
+//! it. The alternative - one fixture file per suite - is how the drift this
+//! module exists to prevent starts.
+#![allow(dead_code)]
 
 use mino_core::types::ConnectionTarget;
 use mino_core::{LocalTransport, Transport};
+
+/// Real git repositories, for `git_status.rs`.
+pub mod git;
 
 /// A tree with a nested match, a decoy at the top level, a hidden file, and a
 /// file buried inside a directory the walk must skip.

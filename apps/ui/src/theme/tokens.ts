@@ -37,6 +37,15 @@ export const colorTokens = {
   warningMuted: "#3a2f14",
   info: "#7dd3fc",
   selection: "#264056",
+
+  // Diff tones. Deliberately not `accent`/`danger`: an added line is not a
+  // success and a removed one is not an error, and borrowing those would make
+  // every diff look like a report card. The `*Line` pair is the row wash and
+  // the plain pair is the gutter sign, which needs to carry on its own.
+  diffAdded: "#7ee2a8",
+  diffAddedLine: "#12291f",
+  diffRemoved: "#f2a5a5",
+  diffRemovedLine: "#2b1719",
 } as const;
 
 export type ColorToken = keyof typeof colorTokens;

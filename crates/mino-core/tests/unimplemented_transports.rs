@@ -84,6 +84,53 @@ async fn assert_every_method_unimplemented(
         transport.probe_shell().await.unwrap_err(),
         kind
     ));
+
+    // The git surface is present rather than absent: `None` would read as
+    // "this target has no git", which is a different fact from "not written
+    // yet" and would send the reader to the wrong file.
+    let git = transport
+        .git()
+        .expect("an unbuilt git surface is still a surface");
+    assert!(is_unimplemented(git.repository().await.unwrap_err(), kind));
+    assert!(is_unimplemented(git.status().await.unwrap_err(), kind));
+
+    let paths = ["/srv/app/x".to_string()];
+    assert!(is_unimplemented(git.stage(&paths).await.unwrap_err(), kind));
+    assert!(is_unimplemented(
+        git.unstage(&paths).await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.discard(&paths).await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.commit(mino_core::types::CommitRequest::new("m"))
+            .await
+            .unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.diff(mino_core::types::DiffRequest::worktree())
+            .await
+            .unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.log(mino_core::types::LogRequest::new())
+            .await
+            .unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(git.show("HEAD").await.unwrap_err(), kind));
+    assert!(is_unimplemented(
+        git.commit_diff("HEAD", None).await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.blame("/srv/app/x").await.unwrap_err(),
+        kind
+    ));
 }
 
 #[tokio::test]

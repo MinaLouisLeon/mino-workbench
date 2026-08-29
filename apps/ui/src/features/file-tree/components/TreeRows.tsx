@@ -33,6 +33,7 @@ export function TreeRows({
             <TreeRow.Chevron />
             <TreeRow.Icon />
             <TreeRow.Label />
+            <TreeRow.GitStatus />
             <TreeRow.Status />
           </TreeRow>
         </TreeRowProvider>

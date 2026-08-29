@@ -25,6 +25,20 @@ export const editorTheme = EditorView.theme(
       borderRight: `1px solid ${colorTokens.border}`,
     },
     ".cm-activeLineGutter": { backgroundColor: colorTokens.surfaceHover },
+    // The blame gutter. Quiet by design: it sits beside every line and should
+    // read as marginalia, not as part of the code.
+    ".cm-blame-gutter": {
+      color: colorTokens.textFaint,
+      paddingLeft: "6px",
+      paddingRight: "6px",
+      minWidth: "13ch",
+      borderRight: `1px solid ${colorTokens.border}`,
+    },
+    ".cm-blame-entry": {
+      fontFamily: fontStacks.mono.join(", "),
+      fontSize: "11px",
+      whiteSpace: "nowrap",
+    },
     ".cm-selectionBackground, ::selection": {
       backgroundColor: colorTokens.selection,
     },

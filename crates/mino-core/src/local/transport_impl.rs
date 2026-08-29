@@ -8,7 +8,7 @@ use async_trait::async_trait;
 
 use crate::error::{Result, TransportError};
 use crate::shell;
-use crate::transport::Transport;
+use crate::transport::{GitTransport, Transport};
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
     PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellKind, ShellProbe, StructuredOutput,
@@ -139,5 +139,12 @@ impl Transport for LocalTransport {
 
     async fn probe_shell(&self) -> Result<ShellProbe> {
         Ok(shell::probe())
+    }
+
+    /// Always present: whether *this folder* is a repository is
+    /// `GitTransport::repository`'s question, and whether git is installed at
+    /// all is answered by the first call rather than by hiding the surface.
+    fn git(&self) -> Option<&dyn GitTransport> {
+        Some(self)
     }
 }

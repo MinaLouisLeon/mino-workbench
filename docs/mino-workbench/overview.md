@@ -27,6 +27,10 @@ apps/desktop/src-tauri  -- dispatch only ---------------+
                                             |-- LocalTransport        (working)
                                             |-- SshTransport          (russh + SFTP)
                                             `-- RemoteAgentTransport  (Unimplemented)
+                                               `- .git() -> GitTransport
+                                                    (a second trait; same three
+                                                     implementations, argv-only
+                                                     calls to the `git` binary)
 ```
 
 `mino-core` depends on neither Tauri nor a web framework, which is what lets
@@ -47,6 +51,8 @@ and their Tauri/agent counterparts are in [endpoints.md](endpoints.md).
 | `open_pty` / `write_pty` / `resize_pty` / `close_pty` | Interactive shell session |
 | `run_structured` | Non-interactive Nushell call returning parsed JSON |
 | `probe_shell` | Is `nu` on PATH, and what is spawned instead |
+| `git().repository` | The repository containing the root, or `None` - and where "git is missing" is reported |
+| `git().status` | The whole working tree in one call: badges, the header strip, the ignore predicate |
 
 ## Flow
 
@@ -128,6 +134,19 @@ through the non-interactive structured channel. `nu-engine`, `nu-protocol`,
 - **The SSH start-screen option is `aria-disabled`, not `disabled`.** A truly
   disabled button cannot be focused and cannot explain itself; this one is
   wired to the SSH transport and answers with the typed reason.
+- **`git status` runs with `--no-optional-locks`.** Status runs on every save
+  and every window focus, and a background process taking the index lock is how
+  a workbench ends up fighting a `git commit` being typed in the terminal pane
+  below it.
+- **Git reports paths in forward slashes on every platform, including
+  Windows.** `git::paths::PathStyle` rewrites them into the target's own style
+  so `GitEntry.path` compares against `DirEntry.path` without special cases.
+  The style is a value each transport supplies, not a `cfg!(windows)`: a
+  Windows client browsing a Linux host over SSH is the ordinary case.
+- **`.gitignore` is honoured by search on the local transport only.** SSH search
+  keeps the built-in skip list, because pulling a status over the network on
+  every query is a cost that feature has not earned yet. Both degrade to the
+  same list when there is no repository.
 - **Symlinks are listed but not followed during a listing.** Following happens
   only when a user selects one, and the path guard re-checks containment then -
   so a symlink pointing outside the root is rejected rather than traversed.

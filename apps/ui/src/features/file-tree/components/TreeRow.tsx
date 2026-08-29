@@ -3,6 +3,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { useTreeRow } from "../context/TreeRowContext";
 import {
   TreeRowChevron,
+  TreeRowGitStatus,
   TreeRowIcon,
   TreeRowIndent,
   TreeRowLabel,
@@ -56,5 +57,6 @@ export const TreeRow = Object.assign(TreeRowRoot, {
   Chevron: TreeRowChevron,
   Icon: TreeRowIcon,
   Label: TreeRowLabel,
+  GitStatus: TreeRowGitStatus,
   Status: TreeRowStatus,
 });

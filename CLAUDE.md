@@ -18,12 +18,22 @@ process. Tauri commands are dispatch only. If a pane needs data, it needs a
 transport method - adding one to the trait, its three implementations, the
 Tauri command list and the TypeScript client is the correct amount of work.
 
+**Two traits, one rule.** Git is a second trait, `mino_core::GitTransport`,
+reached through `Transport::git()` and mirrored in TypeScript as `client.git`.
+The rule above is unchanged and covers both: git shells out to the `git` binary
+inside `mino-core`, and no component or Tauri command spawns it. The split is
+there because git's eventual twenty-five methods on one trait would make every
+implementation file and the stub macro grow for reasons that have nothing to do
+with cohesion, and because "is there git here?" is better answered once at the
+type level than by twenty-five methods each returning a not-a-repository error.
+See `plan/decisions.md` D2 and `docs/mino-workbench/git-module.md`.
+
 Three implementations exist so the interface is proven against three shapes:
 
 | Implementation | Crate path | Status |
 | --- | --- | --- |
-| Local | `crates/mino-core/src/local/` | Working |
-| SSH | `crates/mino-core/src/ssh/` | Working - SFTP for files, SSH channels for shells |
+| Local | `crates/mino-core/src/local/` | Working, git included |
+| SSH | `crates/mino-core/src/ssh/` | Working - SFTP for files, SSH channels for shells and git |
 | Remote agent | `crates/mino-core/src/remote/` | Compiles, returns `Unimplemented` |
 
 `todo!()` and `unimplemented!()` are banned in `mino-core` (enforced by
@@ -77,6 +87,10 @@ equivalent here is given.
   before any syscall.
 - A caller value interpolated into a Nushell pipeline. Values are bound as
   `$env.MINO_<KEY>` parameters; pipeline text is fixed program text.
+- A caller value interpolated into a git command line. Git is called with an
+  argv array of fixed program text (`crates/mino-core/src/git/command.rs`); the
+  working directory is the only caller-influenced value, and over SSH it is
+  single-quoted by a function that refuses what it cannot quote.
 - The agent daemon binding to anything but loopback. It has no authentication
   yet and refuses a routable bind address outright.
 - A credential, private key or passphrase written to disk, to a log or to

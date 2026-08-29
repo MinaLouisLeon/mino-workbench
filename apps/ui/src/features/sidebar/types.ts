@@ -9,7 +9,7 @@ import type { LucideIcon } from "lucide-react";
  * union closed rather than widening it to `string` is what makes a forgotten
  * registry entry a type error instead of a blank panel at runtime.
  */
-export type SidebarViewId = "files" | "search";
+export type SidebarViewId = "files" | "search" | "sourceControl";
 
 /** One entry in the rail: what it is called, what it looks like, what it shows. */
 export interface SidebarView {

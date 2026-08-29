@@ -10,12 +10,14 @@
 #![deny(clippy::todo, clippy::unimplemented)]
 
 pub mod error;
+pub mod git;
 pub mod local;
 pub mod remote;
 pub mod search;
 pub mod shell;
 pub mod ssh;
 pub mod stub;
+pub mod stub_git;
 pub mod transport;
 pub mod types;
 
@@ -23,7 +25,7 @@ pub use error::{Result, TransportError};
 pub use local::LocalTransport;
 pub use remote::RemoteAgentTransport;
 pub use ssh::SshTransport;
-pub use transport::Transport;
+pub use transport::{GitTransport, Transport};
 pub use types::*;
 
 /// Builds the transport that serves a target. The only place a transport is
