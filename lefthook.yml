@@ -1,10 +1,20 @@
 # Git hooks.
 #
-# One hook, one purpose: `pre-push` runs exactly what the `verify` job in
+# One hook, one purpose: `pre-push` runs what the `verify` job in
 # .github/workflows/release-windows.yml runs, so a branch that pushes clean
 # cannot turn the release workflow red on something a local check would have
-# caught. The two lists are meant to stay identical - change one, change the
-# other.
+# caught. Adding a check to CI means adding it here too.
+#
+# It is a superset, by one job. The Playwright suite runs here and not in CI,
+# because CI would have to download a browser on every run to cover the one
+# surface the Windows installer does not ship - the browser build of the start
+# screen. Locally the browser is already there and it costs fourteen seconds,
+# so this is where that suite earns its keep.
+#
+# These hooks are for humans. They are not installed on CI - see
+# scripts/install-hooks.mjs - and the workflow sets `LEFTHOOK=0` so any that
+# slip onto a runner stay quiet. A `pre-push` hook firing inside the release
+# job would re-run this whole list against its push of the version bump.
 #
 # Install (npm does this for you via the `prepare` script):
 #
@@ -14,6 +24,11 @@
 # cheap checks fail fast and nobody waits on Clippy to be told about a typo.
 # The order is deliberate: type errors and lint are the fastest and the most
 # likely, the Rust suite is the slowest.
+#
+# A push with no new commits has nothing to verify, and lefthook skips every
+# job with "no matching push files". That is correct, and it is also why
+# `lefthook run pre-push` on an already-pushed branch reports success without
+# running anything - judge the hook by a real push.
 #
 # Takes about a minute on a warm cache. If you genuinely need to push past it -
 # a work-in-progress branch nobody builds, say - `git push --no-verify` skips
