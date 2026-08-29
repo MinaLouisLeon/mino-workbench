@@ -88,6 +88,22 @@ Conventions and the architectural rule are in [`CLAUDE.md`](CLAUDE.md).
 - Saving refuses to overwrite a file that changed since it was opened.
 - Local storage holds layout preferences and nothing else.
 
+## Releases
+
+Landing work on `main` runs [the release workflow](.github/workflows/release-windows.yml):
+it verifies the branch, builds the Windows `.exe` installer, and publishes it
+as a GitHub Release.
+
+Windows is the only target in this version.
+
+The release is tagged from `version` in
+`apps/desktop/src-tauri/tauri.conf.json`, so **shipping a new build means
+bumping that field**. A push whose version already has a tag still builds and
+attaches the installer to the run, but publishes nothing - moving a tag people
+have already downloaded is worse than a skipped release.
+
+Builds are **not code-signed**, so Windows SmartScreen warns on first run.
+
 ## Status
 
 Phase 1 and 2 are done: local and SSH transports, the editor, terminal splits.

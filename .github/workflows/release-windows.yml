@@ -1,0 +1,169 @@
+# Builds the Windows installer and publishes it as a GitHub Release.
+#
+# Fires when work lands on `main` - which is how a merge from `dev` arrives -
+# and can also be run by hand from the Actions tab.
+#
+# Windows only in this version, so there is one runner and one bundle format:
+# NSIS, which is the `.exe` installer. Tauri would also emit an `.msi` if asked;
+# `--bundles nsis` keeps the release to the one artifact that was wanted.
+#
+# The release is tagged from the `version` in tauri.conf.json, so shipping a
+# new build means bumping that. A push whose version already has a tag builds
+# and verifies, then stops short of publishing rather than moving an existing
+# tag under people who already downloaded it.
+name: Release (Windows)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only what publishing a release needs.
+permissions:
+  contents: write
+
+# A second push to main supersedes a release still in flight; there is no point
+# publishing the older one.
+concurrency:
+  group: release-windows
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # No toolchain is named here on purpose: rust-toolchain.toml pins the
+      # version, and rustup installs it on the first cargo call. One source of
+      # truth beats two that can disagree.
+      - name: Show Rust toolchain
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: verify
+
+      - run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint . --max-warnings 0
+
+      - name: Unit and integration tests
+        run: npx vitest run
+
+      - name: End-to-end tests
+        run: |
+          npx playwright install chromium
+          npx playwright test
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      # `mino-desktop` is excluded because it declares no tests: it is command
+      # dispatch, and its behaviour is covered through the transport instead.
+      # Building its test harness only costs time.
+      - name: Rust tests
+        run: cargo test --workspace --exclude mino-desktop
+
+  release:
+    name: Build installer and release
+    needs: verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release
+
+      - run: npm ci
+
+      - name: Read the version to release
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "tauri.conf.json declares version $version"
+
+      # Publishing over an existing tag would change what people already
+      # downloaded, so an unbumped version stops here instead.
+      - name: Check the tag is free
+        id: tag
+        shell: pwsh
+        run: |
+          git fetch --tags --quiet
+          $tag = "${{ steps.version.outputs.tag }}"
+          if (git tag --list $tag) {
+            # No backticks in this string: PowerShell reads them as escapes,
+            # and "`v" would become a vertical tab.
+            Write-Host "::warning::$tag already exists. Bump the version in apps/desktop/src-tauri/tauri.conf.json to publish a new release. Building anyway, so the installer is still checked and uploaded to this run."
+            "fresh=false" >> $env:GITHUB_OUTPUT
+          } else {
+            "fresh=true" >> $env:GITHUB_OUTPUT
+          }
+
+      # `--bundles nsis` is the `.exe` installer. The frontend is built first by
+      # the `beforeBuildCommand` already in tauri.conf.json.
+      - name: Build the Windows installer
+        run: npx tauri build --bundles nsis
+
+      # Tauri names the file from `productName`, so it contains a space
+      # ("Mino Workbench_0.1.0_x64-setup.exe"). The steps below take a glob
+      # rather than this path for exactly that reason; this step exists to fail
+      # loudly if the bundle is missing, and to put its name in the log.
+      - name: Check the installer was produced
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path target/release/bundle/nsis -Filter *.exe |
+                 Select-Object -First 1
+          if (-not $exe) { throw "no NSIS installer under target/release/bundle/nsis" }
+          Write-Host "built $($exe.Name) ($([math]::Round($exe.Length / 1MB, 1)) MB)"
+
+      # Kept even when the release is skipped, so a build off an existing
+      # version is still downloadable from the run.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mino-workbench-${{ steps.version.outputs.version }}-windows-installer
+          path: target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+      - name: Publish the release
+        if: steps.tag.outputs.fresh == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Mino Workbench ${{ steps.version.outputs.version }}
+          files: target/release/bundle/nsis/*.exe
+          generate_release_notes: true
+          body: |
+            Windows installer for Mino Workbench ${{ steps.version.outputs.version }}.
+
+            Run the `.exe` below to install. The build is **not code-signed**,
+            so Windows SmartScreen will warn on first run: choose
+            *More info* then *Run anyway*, or check the file's SHA-256 against
+            the build log first.
+
+            Windows is the only target in this version.
