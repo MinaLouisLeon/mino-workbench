@@ -90,17 +90,29 @@ Conventions and the architectural rule are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Releases
 
-Landing work on `main` runs [the release workflow](.github/workflows/release-windows.yml):
-it verifies the branch, builds the Windows `.exe` installer, and publishes it
-as a GitHub Release.
+Merging `dev` into `main` is the whole release process. From there
+[the workflow](.github/workflows/release-windows.yml) does the rest with no
+manual step:
+
+1. verifies the branch - types, lint, tests, clippy, formatting;
+2. bumps the patch version in `tauri.conf.json`, `Cargo.toml` and both
+   `package.json` files together, via `scripts/bump-version.mjs`;
+3. clears any previous bundle output, then builds the Windows `.exe`;
+4. commits the bump back to `main`, tags it `v<version>`, and publishes a
+   release with the installer attached.
 
 Windows is the only target in this version.
 
-The release is tagged from `version` in
-`apps/desktop/src-tauri/tauri.conf.json`, so **shipping a new build means
-bumping that field**. A push whose version already has a tag still builds and
-attaches the installer to the run, but publishes nothing - moving a tag people
-have already downloaded is worse than a skipped release.
+The order matters: the installer is built **before** the bump is pushed, so a
+failed build leaves `main` untouched rather than bumped to a version that
+never shipped. The bundle directory is cleared first because the build cache
+can still hold the previous version's installer, and releasing the wrong one
+would be worse than a slow build.
+
+To move the minor or major version instead of the patch, run the workflow by
+hand from the Actions tab and pick the part to bump.
+
+Past releases keep their installers, so an older version stays downloadable.
 
 Builds are **not code-signed**, so Windows SmartScreen warns on first run.
 

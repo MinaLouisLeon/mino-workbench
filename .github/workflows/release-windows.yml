@@ -1,32 +1,41 @@
-# Builds the Windows installer and publishes it as a GitHub Release.
+# Ships a Windows release on every merge into `main`.
 #
-# Fires when work lands on `main` - which is how a merge from `dev` arrives -
-# and can also be run by hand from the Actions tab.
+# Merging `dev` into `main` is the whole trigger. From there nothing is manual:
+# the version moves forward on its own, the installer is rebuilt from scratch,
+# and a release is published at the new tag.
+#
+#   verify   the branch has to be green before anything is published
+#   release  bump the version -> build the .exe -> push the bump -> tag -> release
 #
 # Windows only in this version, so there is one runner and one bundle format:
-# NSIS, which is the `.exe` installer. Tauri would also emit an `.msi` if asked;
-# `--bundles nsis` keeps the release to the one artifact that was wanted.
+# NSIS, which is the `.exe` installer.
 #
-# The release is tagged from the `version` in tauri.conf.json, so shipping a
-# new build means bumping that. A push whose version already has a tag builds
-# and verifies, then stops short of publishing rather than moving an existing
-# tag under people who already downloaded it.
+# On the loop this could obviously cause: the version bump is committed back to
+# `main`, and a push to `main` is what triggers this workflow. It does not
+# recurse, because GitHub raises no workflow events for pushes made with
+# GITHUB_TOKEN. The `[skip ci]` in that commit message is a second belt for the
+# same trousers.
 name: Release (Windows)
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Which part of the version to move"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
 
-# Only what publishing a release needs.
 permissions:
   contents: write
 
-# A second push to main supersedes a release still in flight; there is no point
-# publishing the older one.
+# Runs queue rather than cancel: this job pushes a commit and a tag, and
+# killing it midway could leave a tag with no release behind it.
 concurrency:
   group: release-windows
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   NODE_VERSION: "22"
@@ -86,7 +95,12 @@ jobs:
     needs: verify
     runs-on: windows-latest
     steps:
+      # Full history: the bump is committed back, and a shallow clone cannot
+      # rebase onto whatever else reached main in the meantime.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
@@ -99,51 +113,71 @@ jobs:
 
       - run: npm ci
 
-      - name: Read the version to release
+      # Moves tauri.conf.json, Cargo.toml and both package.json files together,
+      # so the installer, the crates and npm never disagree about the version.
+      - name: Bump the version
         id: version
         shell: pwsh
         run: |
-          $version = (Get-Content apps/desktop/src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $bump = "${{ inputs.bump }}"
+          if (-not $bump) { $bump = "patch" }
+          $version = node scripts/bump-version.mjs $bump
+          if ($LASTEXITCODE -ne 0) { throw "version bump failed" }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
-          Write-Host "tauri.conf.json declares version $version"
 
-      # Publishing over an existing tag would change what people already
-      # downloaded, so an unbumped version stops here instead.
-      - name: Check the tag is free
-        id: tag
+      - name: Refresh Cargo.lock
+        run: cargo update --workspace
+
+      # rust-cache restores a warm target directory, which can still hold the
+      # installer from the previous version. Left alone the glob below would
+      # match two files, and the release would carry a stale one.
+      - name: Clear previous bundles
         shell: pwsh
         run: |
-          git fetch --tags --quiet
-          $tag = "${{ steps.version.outputs.tag }}"
-          if (git tag --list $tag) {
-            # No backticks in this string: PowerShell reads them as escapes,
-            # and "`v" would become a vertical tab.
-            Write-Host "::warning::$tag already exists. Bump the version in apps/desktop/src-tauri/tauri.conf.json to publish a new release. Building anyway, so the installer is still checked and uploaded to this run."
-            "fresh=false" >> $env:GITHUB_OUTPUT
-          } else {
-            "fresh=true" >> $env:GITHUB_OUTPUT
+          if (Test-Path target/release/bundle) {
+            Remove-Item -Recurse -Force target/release/bundle
+            Write-Host "removed the previous bundle output"
           }
 
-      # `--bundles nsis` is the `.exe` installer. The frontend is built first by
-      # the `beforeBuildCommand` already in tauri.conf.json.
+      # The frontend is built first by the `beforeBuildCommand` already in
+      # tauri.conf.json.
       - name: Build the Windows installer
         run: npx tauri build --bundles nsis
 
       # Tauri names the file from `productName`, so it contains a space
-      # ("Mino Workbench_0.1.0_x64-setup.exe"). The steps below take a glob
-      # rather than this path for exactly that reason; this step exists to fail
-      # loudly if the bundle is missing, and to put its name in the log.
-      - name: Check the installer was produced
+      # ("Mino Workbench_0.1.1_x64-setup.exe"). Everything downstream takes a
+      # glob rather than this path for that reason; this step fails loudly if
+      # the bundle is missing, and refuses to release two installers at once.
+      - name: Check exactly one installer was produced
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Path target/release/bundle/nsis -Filter *.exe |
-                 Select-Object -First 1
-          if (-not $exe) { throw "no NSIS installer under target/release/bundle/nsis" }
-          Write-Host "built $($exe.Name) ($([math]::Round($exe.Length / 1MB, 1)) MB)"
+          $found = @(Get-ChildItem -Path target/release/bundle/nsis -Filter *.exe)
+          if ($found.Count -eq 0) { throw "no NSIS installer under target/release/bundle/nsis" }
+          if ($found.Count -gt 1) {
+            throw "expected one installer, found $($found.Count): $($found.Name -join ', ')"
+          }
+          Write-Host "built $($found[0].Name) ($([math]::Round($found[0].Length / 1MB, 1)) MB)"
 
-      # Kept even when the release is skipped, so a build off an existing
-      # version is still downloadable from the run.
+      # Only now, with a working installer in hand: a failed build leaves main
+      # untouched rather than bumped to a version that never shipped.
+      - name: Commit and push the bump
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/src-tauri/tauri.conf.json package.json apps/ui/package.json Cargo.toml Cargo.lock
+          git commit -m "chore: release ${{ steps.version.outputs.tag }} [skip ci]"
+          # main may have moved while this ran; rebase rather than clobber it.
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Tag the release
+        shell: pwsh
+        run: |
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Mino Workbench ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
       - uses: actions/upload-artifact@v4
         with:
           name: mino-workbench-${{ steps.version.outputs.version }}-windows-installer
@@ -151,7 +185,6 @@ jobs:
           if-no-files-found: error
 
       - name: Publish the release
-        if: steps.tag.outputs.fresh == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -163,7 +196,6 @@ jobs:
 
             Run the `.exe` below to install. The build is **not code-signed**,
             so Windows SmartScreen will warn on first run: choose
-            *More info* then *Run anyway*, or check the file's SHA-256 against
-            the build log first.
+            *More info* then *Run anyway*.
 
             Windows is the only target in this version.
