@@ -13,6 +13,14 @@
 //! very operation the panel exists to offer. This one rules on the string, and
 //! is strict about it:
 //!
+//! That strictness has a cost, and the local transport pays it before calling
+//! here. A caller can hold a *different spelling* of a path the session plainly
+//! owns - a Windows 8.3 short name, a symlinked temporary directory on macOS -
+//! and a string test refuses those. `local::git_guard::resolve` canonicalises
+//! what exists first, so both spellings arrive as one. Anything that does not
+//! resolve, a deleted file included, reaches the rules below untouched, and
+//! containment is still checked here afterwards.
+//!
 //! - a `..` segment is refused outright rather than resolved, so there is no
 //!   traversal to reason about;
 //! - the path must sit inside the session root by [`PathStyle::within`], the
