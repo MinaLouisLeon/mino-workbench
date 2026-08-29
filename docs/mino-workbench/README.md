@@ -16,6 +16,7 @@
 | [transport-layer-module.md](transport-layer-module.md) | Connecting, the three implementations, the path guard, the structured Nushell channel |
 | [terminal-pane-module.md](terminal-pane-module.md) | PTY lifecycle, resize in both directions, the `nu`-missing fallback |
 | [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors |
+| [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
 | [components.md](components.md) | Shared presentational components and the compound tree row |
 | [state-store.md](state-store.md) | Contexts, hooks, what is persisted and what must never be |
@@ -31,6 +32,10 @@ Start screen → pick a folder → connect(local) → ConnectionInfo
 
 Tree row expand → list_dir(path) → nu `ls … | to json` → DirEntry[]
                                  ↘ nu missing/failed → std::fs listing → DirEntry[]
+
+Rail icon → active view switches (or collapses, if already showing)
+Search typed → debounce → search_files(query) → walk + fuzzy rank → SearchHits
+Search hit    → selection context → read_file(path)
 
 Tree row (file) → selection context → read_file(path)
                                     → size ceiling → binary sniff → FilePayload

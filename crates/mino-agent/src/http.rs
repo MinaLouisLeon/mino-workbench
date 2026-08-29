@@ -58,6 +58,7 @@ fn method_name(request: &AgentRequest) -> &'static str {
         AgentRequest::Disconnect => "disconnect",
         AgentRequest::ListDir { .. } => "list_dir",
         AgentRequest::Stat { .. } => "stat",
+        AgentRequest::SearchFiles { .. } => "search_files",
         AgentRequest::ReadFile { .. } => "read_file",
         AgentRequest::OpenPty { .. } => "open_pty",
         AgentRequest::WritePty { .. } => "write_pty",

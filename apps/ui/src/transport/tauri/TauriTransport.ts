@@ -20,6 +20,9 @@ import type {
   ReadFileOptions,
   ResizePtyArgs,
   RunStructuredArgs,
+  SearchFilesArgs,
+  SearchHits,
+  SearchQuery,
   ShellProbe,
   StructuredOutput,
   StructuredRequest,
@@ -69,6 +72,12 @@ export class TauriTransport implements TransportClient {
 
   stat(path: string): Promise<DirEntry> {
     return invokeTransport(TRANSPORT_COMMANDS.stat, { path } satisfies PathArgs);
+  }
+
+  searchFiles(query: SearchQuery): Promise<SearchHits> {
+    return invokeTransport(TRANSPORT_COMMANDS.searchFiles, {
+      query,
+    } satisfies SearchFilesArgs);
   }
 
   readFile(path: string, options = DEFAULT_READ_OPTIONS): Promise<FilePayload> {

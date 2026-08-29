@@ -1,6 +1,6 @@
 //! Shared body for a transport that compiles but is not built yet.
 //!
-//! The SSH and remote-agent transports both need all twelve methods to exist
+//! The SSH and remote-agent transports both need all thirteen methods to exist
 //! and to answer with a typed `Unimplemented` error rather than a panic. That
 //! body is identical for both, so it lives here once instead of being copied
 //! into each module.
@@ -34,6 +34,13 @@ macro_rules! unimplemented_transport {
 
             async fn stat(&self, _path: &str) -> $crate::Result<$crate::types::DirEntry> {
                 Err($crate::TransportError::unimplemented($kind, "stat"))
+            }
+
+            async fn search_files(
+                &self,
+                _query: $crate::types::SearchQuery,
+            ) -> $crate::Result<$crate::types::SearchHits> {
+                Err($crate::TransportError::unimplemented($kind, "search_files"))
             }
 
             async fn read_file(

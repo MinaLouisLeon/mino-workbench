@@ -41,6 +41,7 @@ and their Tauri/agent counterparts are in [endpoints.md](endpoints.md).
 | --- | --- |
 | `connect` / `disconnect` | Open or tear down a session against a target, pinning the root |
 | `list_dir` | One directory level, lazily |
+| `search_files` | The whole tree, bounded: fuzzy filename search |
 | `stat` | Metadata for one path |
 | `read_file` | File contents behind the size ceiling and the binary sniff |
 | `open_pty` / `write_pty` / `resize_pty` / `close_pty` | Interactive shell session |
@@ -62,7 +63,10 @@ connected
   `- Workbench (persisted splits)
        |- WorkbenchHeader -> Breadcrumb -> run_structured("path split")
        |                                    `-> fails -> splitSegments() in TS
-       |- FileTreePane  -> useFileTreePane -> useFileTree -> list_dir per expand
+       |- ActivityBar   -> useSidebarState -> which view shows, or none
+       |- SidebarPanel  -> FileTreePane -> useFileTreePane -> useFileTree
+       |                |                                     `-> list_dir per expand
+       |                `- SearchPane  -> useFileSearch -> search_files (debounced)
        |- ViewerPane    -> useFileViewer   -> read_file -> useCodeMirror
        `- TerminalPane  -> useTerminalSession -> open_pty + onPtyEvent
                                               -> useTerminalResize -> resize_pty

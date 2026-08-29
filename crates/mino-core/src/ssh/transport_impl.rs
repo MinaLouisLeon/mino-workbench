@@ -9,11 +9,11 @@ use crate::error::{Result, TransportError};
 use crate::transport::Transport;
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
-    PtyStream, ReadFileOptions, ShellProbe, StructuredOutput, StructuredRequest, TransportKind,
-    WriteRequest,
+    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
+    StructuredRequest, TransportKind, WriteRequest,
 };
 
-use super::{connect, fs, pty_open, read, structured, write, SshTransport};
+use super::{connect, fs, pty_open, read, search, structured, write, SshTransport};
 
 #[async_trait]
 impl Transport for SshTransport {
@@ -61,6 +61,11 @@ impl Transport for SshTransport {
     async fn stat(&self, path: &str) -> Result<DirEntry> {
         let connected = self.connected().await?;
         fs::stat(&connected.sftp, &connected.root, path).await
+    }
+
+    async fn search_files(&self, query: SearchQuery) -> Result<SearchHits> {
+        let connected = self.connected().await?;
+        search::search(&connected.sftp, &connected.root, &query).await
     }
 
     async fn read_file(&self, path: &str, options: ReadFileOptions) -> Result<FilePayload> {

@@ -15,6 +15,7 @@ const METHODS: TransportMethod[] = [
   "disconnect",
   "listDir",
   "stat",
+  "searchFiles",
   "readFile",
   "writeFile",
   "openPty",

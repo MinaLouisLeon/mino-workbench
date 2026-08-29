@@ -9,6 +9,7 @@ mod connection;
 mod entry;
 mod file;
 mod pty;
+mod search;
 mod structured;
 
 pub use connection::{ConnectionInfo, ConnectionTarget, TransportKind};
@@ -18,4 +19,8 @@ pub use file::{
     DEFAULT_WRITE_LIMIT_BYTES,
 };
 pub use pty::{PtyEvent, PtyExit, PtySession, PtySessionId, PtySize, PtySpawnSpec, PtyStream};
+pub use search::{
+    SearchHit, SearchHits, SearchQuery, DEFAULT_SEARCH_LIMIT, MAX_SCANNED_ENTRIES,
+    MAX_SEARCH_LIMIT, SEARCH_TIMEOUT_MS, SKIPPED_DIRECTORIES,
+};
 pub use structured::{ShellKind, ShellProbe, StructuredOutput, StructuredRequest};

@@ -11,6 +11,8 @@ everything else is a hook local to its feature.
 | `SessionContext` | `features/workbench/context/SessionContext.tsx` | `status`, `connection`, `shellProbe`, `error`, `connect`, `disconnect` | start screen, header, tree, terminal |
 | `SelectionContext` | `features/workbench/context/SelectionContext.tsx` | `selected` entry, `select` | tree writes, viewer reads |
 | `TreeRowContext` | `features/file-tree/context/TreeRowContext.tsx` | one row's data and handlers | the row's parts |
+| `SidebarContext` | `features/sidebar/context/SidebarContext.tsx` | `activeView`, `collapsed`, `activate`, `setCollapsed` | the rail, the panel, the column hosting them |
+| `SearchRowContext` | `features/search/context/SearchRowContext.tsx` | one hit's data and handlers | the row's parts |
 
 `TransportProvider` takes an optional `client`, which is the seam tests inject
 a fake through. Production calls `createTransport()`.
@@ -23,6 +25,9 @@ a fake through. Production calls `createTransport()`.
 | `usePersistentState` | `hooks/usePersistentState.ts` | localStorage-mirrored state |
 | `useSession` | `features/workbench/hooks/useSession.ts` | connection lifecycle, teardown on unmount |
 | `useWorkbenchLayout` | `features/workbench/hooks/useWorkbenchLayout.ts` | persisted split sizes |
+| `useSidebarState` | `features/sidebar/hooks/useSidebarState.ts` | persisted active view and collapsed flag |
+| `useSidebarPanel` | `features/sidebar/hooks/useSidebarPanel.ts` | keeping that flag and the resizable column in step |
+| `useFileSearch` | `features/search/hooks/useFileSearch.ts` | debounced query, ranked hits, the stale-answer guard |
 | `useBreadcrumb` | `features/workbench/hooks/useBreadcrumb.ts` | structured `path split`, degrading to a TS split |
 | `useFileTree` | `features/file-tree/hooks/useFileTree.ts` | the lazy-load state machine |
 | `useFileTreePane` | `features/file-tree/hooks/useFileTreePane.ts` | root, rows, selection, activation |
@@ -41,6 +46,7 @@ logic, it gets a hook.
 | Key | Value | Where |
 | --- | --- | --- |
 | `mino.layout.v1` | `{ tree, viewer, terminal }` split percentages | `localStorage` |
+| `mino.sidebar.v1` | `{ activeView, collapsed }` | `localStorage` |
 
 **Nothing else.** No credentials, no private keys, no passphrases, no host
 secrets, no file contents, no directory listings. `usePersistentState` is for

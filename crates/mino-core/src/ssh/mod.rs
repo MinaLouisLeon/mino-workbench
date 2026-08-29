@@ -30,6 +30,7 @@ mod pty_open;
 mod read;
 mod reroot;
 mod roots;
+mod search;
 mod session;
 mod structured;
 mod transport_impl;
