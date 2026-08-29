@@ -8,7 +8,7 @@
     "apps/ui"
   ],
   "scripts": {
-    "prepare": "lefthook install",
+    "prepare": "node scripts/install-hooks.mjs",
     "dev": "npm run dev --workspace @mino/ui",
     "build": "npm run build --workspace @mino/ui",
     "desktop": "tauri dev",

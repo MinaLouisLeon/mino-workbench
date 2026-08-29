@@ -39,6 +39,13 @@ concurrency:
 
 env:
   NODE_VERSION: "22"
+  # Git hooks are for humans. `scripts/install-hooks.mjs` already refuses to
+  # install them when CI is set; this stops any that slip through - a cached
+  # checkout, a hand-run `lefthook install` - from firing. It matters in the
+  # release job, which pushes the version bump back to `main`: a `pre-push`
+  # hook there re-runs the whole suite inside a job that was never set up for
+  # it, and a failure blocks the release.
+  LEFTHOOK: "0"
 
 jobs:
   verify:
@@ -73,10 +80,11 @@ jobs:
       - name: Unit and integration tests
         run: npx vitest run
 
-      - name: End-to-end tests
-        run: |
-          npx playwright install chromium
-          npx playwright test
+      # The Playwright suite is deliberately not here. It needs a browser
+      # download on every run, and it covers the browser build of the start
+      # screen - the one surface that does not ship in the Windows installer
+      # this workflow exists to produce. It runs on `pre-push` instead, where
+      # the browser is already installed; see lefthook.yml.
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings

@@ -67,11 +67,20 @@ too but has three sharp edges — see
 
 ### Before you push
 
-`npm install` installs a `pre-push` hook (lefthook) that runs exactly what the
-release workflow's `verify` job runs: type-check, lint, Vitest, Playwright,
-`cargo fmt --check`, Clippy and the Rust tests. It stops at the first failure
-and takes about a minute on a warm cache, so a branch that pushes clean does
-not turn the release red on something a local check would have caught.
+`npm install` installs a `pre-push` hook (lefthook) that runs what the release
+workflow's `verify` job runs: type-check, lint, Vitest, `cargo fmt --check`,
+Clippy and the Rust tests — plus Playwright, which runs here and not in CI.
+It stops at the first failure and takes about a minute on a warm cache, so a
+branch that pushes clean does not turn the release red on something a local
+check would have caught.
+
+The Playwright suite needs a browser once per machine:
+`npx playwright install chromium`. It covers the browser build of the start
+screen, which the Windows installer does not ship, so CI would be downloading
+a browser on every run to test something it never releases.
+
+The hooks are for humans: they are not installed on CI, and the workflow sets
+`LEFTHOOK=0` so any that reach a runner stay quiet.
 
 The hook lives in [`lefthook.yml`](lefthook.yml). `git push --no-verify` skips
 it for a work-in-progress branch; `LEFTHOOK=0 git push` skips every hook.
