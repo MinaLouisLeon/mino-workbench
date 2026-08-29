@@ -81,6 +81,26 @@ describe("the source control panel", () => {
     );
   });
 
+  it("puts the scrolling in one place, not two", async () => {
+    // Regression: the root is `relative` so the discard confirmation can cover
+    // this pane. A positioned box reports its scrollable descendants' content
+    // in its own `scrollHeight`, so `Pane`'s body grew a second scrollbar
+    // beside the list's. `overflow-hidden` on the root is what settles it -
+    // the two children already add up to exactly its height.
+    renderPanel();
+    await screen.findByRole("region", { name: "Staged changes" });
+
+    const pane = screen.getByRole("region", { name: "Source control" });
+    const root = pane.querySelector("div > div");
+    expect(root).toHaveClass("relative", "overflow-hidden");
+
+    // Exactly one element inside the pane may scroll vertically: the list.
+    const scrollers = [...pane.querySelectorAll("*")].filter((el) =>
+      el.className.toString().includes("overflow-y-auto"),
+    );
+    expect(scrollers).toHaveLength(1);
+  });
+
   it("says so plainly when the tree is clean", async () => {
     renderPanel([]);
     expect(await screen.findByText("Nothing to commit")).toBeInTheDocument();

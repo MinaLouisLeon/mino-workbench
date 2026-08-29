@@ -51,9 +51,16 @@ export function SourceControlPane() {
 
   return (
     <Pane title={SOURCE_CONTROL_COPY.title}>
-      {/* Relative, so the discard confirmation covers this pane and not the
-          whole window: it is about a file in this list. */}
-      <div className="relative flex h-full min-h-0 flex-col">
+      {/* `relative` so the discard confirmation covers this pane and not the
+          whole window - it is about a file in this list.
+
+          `overflow-hidden` is what stops that costing a second scrollbar. A
+          positioned box reports its scrollable descendants' *content* in its
+          own `scrollHeight`, so `Pane`'s body saw 1845px inside a 786px child
+          that fits it exactly, and grew a scrollbar of its own beside the
+          list's. Clipping here is free - the two children already add up to
+          exactly this height - and it keeps the overlay anchored. */}
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
         <CommitBox state={control.commitState} />
 
         {control.error ? (
