@@ -198,6 +198,29 @@ A batch is **all-or-nothing**. One refused path runs none of them:
 half-applying a stage and then reporting a failure would leave the index in a
 state nobody asked for and the UI unable to say what happened.
 
+### One spelling, before the string test
+
+`connect` canonicalises the session root, so the containment test is against
+the canonical form - and a caller can legitimately hold *another* spelling of
+the same file. A Windows 8.3 short name (`C:\Users\RUNNER~1\...`, which is what
+`%TEMP%` expands to on a GitHub Actions runner), a symlinked temporary
+directory on macOS, a `.` segment. Refusing those would be refusing a path the
+session plainly owns, and CI found it before a user did.
+
+So `local::git_guard::resolve` canonicalises what exists before the guard sees
+it. Two things about that are deliberate:
+
+- **A path that does not resolve is handed on untouched.** That is the case
+  that matters most - staging a *deleted* file - and it is why the guard rules
+  on strings in the first place.
+- **It is local-only.** Over SSH the path names a file on the remote host,
+  which this process's filesystem cannot answer for at all; those paths arrive
+  from SFTP `realpath` already resolved.
+
+Nothing about what is *allowed* moves. Containment is still checked afterwards,
+against the canonical root, so a resolved path outside the session is refused
+exactly as an unresolved one would be.
+
 ## The discard rule
 
 `discard` is the only call in this app that destroys work outright. What it
