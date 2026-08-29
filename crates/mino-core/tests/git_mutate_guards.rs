@@ -138,3 +138,33 @@ async fn commit_is_refused_outside_a_repository() {
         .await
         .is_err());
 }
+
+#[tokio::test]
+async fn a_path_spelled_differently_but_naming_the_same_file_is_accepted() {
+    if !git_available() {
+        return;
+    }
+    // `connect` canonicalises the session root, so the guard compares against
+    // the canonical form. A caller can legitimately hold another spelling of
+    // the same file - a Windows 8.3 short name (`RUNNER~1`), a symlinked temp
+    // directory on macOS, a `.` segment - and refusing those would be refusing
+    // a path the session plainly owns.
+    let dir = repository();
+    let root = dir.path();
+    std::fs::write(root.join("src/main.rs"), "fn main() { }\n").unwrap();
+    let transport = connected(root).await;
+
+    let spelled_oddly = root.join("src/./main.rs").to_string_lossy().into_owned();
+    surface(&transport)
+        .stage(std::slice::from_ref(&spelled_oddly))
+        .await
+        .unwrap();
+
+    let status = surface(&transport).status().await.unwrap();
+    let entry = status
+        .entries
+        .iter()
+        .find(|e| e.relative_path == "src/main.rs")
+        .unwrap();
+    assert_eq!(entry.index, mino_core::types::GitFileState::Modified);
+}
