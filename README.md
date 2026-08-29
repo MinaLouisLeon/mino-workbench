@@ -98,6 +98,10 @@ component trees and the manual QA guide live in
 
 Conventions and the architectural rule are in [`CLAUDE.md`](CLAUDE.md).
 
+Planned work that has not been built yet lives in [`plan/`](plan/README.md) -
+currently the six-phase plan for git and GitHub integration, and the decisions
+it is waiting on.
+
 ## Security posture
 
 - **The agent daemon has no authentication**, so it binds to loopback only and
