@@ -1,0 +1,201 @@
+# Ships a Windows release on every merge into `main`.
+#
+# Merging `dev` into `main` is the whole trigger. From there nothing is manual:
+# the version moves forward on its own, the installer is rebuilt from scratch,
+# and a release is published at the new tag.
+#
+#   verify   the branch has to be green before anything is published
+#   release  bump the version -> build the .exe -> push the bump -> tag -> release
+#
+# Windows only in this version, so there is one runner and one bundle format:
+# NSIS, which is the `.exe` installer.
+#
+# On the loop this could obviously cause: the version bump is committed back to
+# `main`, and a push to `main` is what triggers this workflow. It does not
+# recurse, because GitHub raises no workflow events for pushes made with
+# GITHUB_TOKEN. The `[skip ci]` in that commit message is a second belt for the
+# same trousers.
+name: Release (Windows)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Which part of the version to move"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+
+# Runs queue rather than cancel: this job pushes a commit and a tag, and
+# killing it midway could leave a tag with no release behind it.
+concurrency:
+  group: release-windows
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # No toolchain is named here on purpose: rust-toolchain.toml pins the
+      # version, and rustup installs it on the first cargo call. One source of
+      # truth beats two that can disagree.
+      - name: Show Rust toolchain
+        run: rustup show
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: verify
+
+      - run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint . --max-warnings 0
+
+      - name: Unit and integration tests
+        run: npx vitest run
+
+      - name: End-to-end tests
+        run: |
+          npx playwright install chromium
+          npx playwright test
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      # `mino-desktop` is excluded because it declares no tests: it is command
+      # dispatch, and its behaviour is covered through the transport instead.
+      # Building its test harness only costs time.
+      - name: Rust tests
+        run: cargo test --workspace --exclude mino-desktop
+
+  release:
+    name: Build installer and release
+    needs: verify
+    runs-on: windows-latest
+    steps:
+      # Full history: the bump is committed back, and a shallow clone cannot
+      # rebase onto whatever else reached main in the meantime.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release
+
+      - run: npm ci
+
+      # Moves tauri.conf.json, Cargo.toml and both package.json files together,
+      # so the installer, the crates and npm never disagree about the version.
+      - name: Bump the version
+        id: version
+        shell: pwsh
+        run: |
+          $bump = "${{ inputs.bump }}"
+          if (-not $bump) { $bump = "patch" }
+          $version = node scripts/bump-version.mjs $bump
+          if ($LASTEXITCODE -ne 0) { throw "version bump failed" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Refresh Cargo.lock
+        run: cargo update --workspace
+
+      # rust-cache restores a warm target directory, which can still hold the
+      # installer from the previous version. Left alone the glob below would
+      # match two files, and the release would carry a stale one.
+      - name: Clear previous bundles
+        shell: pwsh
+        run: |
+          if (Test-Path target/release/bundle) {
+            Remove-Item -Recurse -Force target/release/bundle
+            Write-Host "removed the previous bundle output"
+          }
+
+      # The frontend is built first by the `beforeBuildCommand` already in
+      # tauri.conf.json.
+      - name: Build the Windows installer
+        run: npx tauri build --bundles nsis
+
+      # Tauri names the file from `productName`, so it contains a space
+      # ("Mino Workbench_0.1.1_x64-setup.exe"). Everything downstream takes a
+      # glob rather than this path for that reason; this step fails loudly if
+      # the bundle is missing, and refuses to release two installers at once.
+      - name: Check exactly one installer was produced
+        shell: pwsh
+        run: |
+          $found = @(Get-ChildItem -Path target/release/bundle/nsis -Filter *.exe)
+          if ($found.Count -eq 0) { throw "no NSIS installer under target/release/bundle/nsis" }
+          if ($found.Count -gt 1) {
+            throw "expected one installer, found $($found.Count): $($found.Name -join ', ')"
+          }
+          Write-Host "built $($found[0].Name) ($([math]::Round($found[0].Length / 1MB, 1)) MB)"
+
+      # Only now, with a working installer in hand: a failed build leaves main
+      # untouched rather than bumped to a version that never shipped.
+      - name: Commit and push the bump
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/src-tauri/tauri.conf.json package.json apps/ui/package.json Cargo.toml Cargo.lock
+          git commit -m "chore: release ${{ steps.version.outputs.tag }} [skip ci]"
+          # main may have moved while this ran; rebase rather than clobber it.
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Tag the release
+        shell: pwsh
+        run: |
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Mino Workbench ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mino-workbench-${{ steps.version.outputs.version }}-windows-installer
+          path: target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Mino Workbench ${{ steps.version.outputs.version }}
+          files: target/release/bundle/nsis/*.exe
+          generate_release_notes: true
+          body: |
+            Windows installer for Mino Workbench ${{ steps.version.outputs.version }}.
+
+            Run the `.exe` below to install. The build is **not code-signed**,
+            so Windows SmartScreen will warn on first run: choose
+            *More info* then *Run anyway*.
+
+            Windows is the only target in this version.
