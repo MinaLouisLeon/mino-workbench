@@ -29,7 +29,12 @@ Three edits, no component changes:
    `lucide-react` `icon`, and a `Panel` component.
 
 `Panel` takes no props. A view reads what it needs from context, exactly as
-`FileTreePane` and `SearchPane` do. Array order is rail order.
+`FileTreePane`, `SearchPane` and `SourceControlPane` do. Array order is rail
+order.
+
+The registry has been added to twice now without a component changing, which is
+what it was built for: source control arrived in phase 2 as one entry, one id
+and one label.
 
 ## Two decisions worth knowing
 

@@ -7,12 +7,13 @@ Opening a session, and everything every other flow routes through.
 | Layer | Files |
 | --- | --- |
 | Interface | `crates/mino-core/src/transport.rs`, `src/types/*`, `src/error.rs` |
-| Local | `crates/mino-core/src/local/{mod,transport_impl,fs,read,roots,pty,pty_spawn,structured,pipelines}.rs` |
+| Local | `crates/mino-core/src/local/{mod,transport_impl,fs,read,roots,pty,pty_spawn,structured,pipelines,git,git_run}.rs` |
 | SSH | `crates/mino-core/src/ssh/mod.rs` |
 | Remote agent | `crates/mino-core/src/remote/mod.rs` |
-| Shared stub body | `crates/mino-core/src/stub.rs` |
+| Shared stub bodies | `crates/mino-core/src/{stub,stub_git}.rs` |
+| Shared decisions | `crates/mino-core/src/{search,git}/` |
 | Dispatch | `apps/desktop/src-tauri/src/{state.rs,commands/*}` |
-| Client | `apps/ui/src/transport/*`, `apps/ui/src/Types/modules/api.ts` |
+| Client | `apps/ui/src/transport/*`, `apps/ui/src/Types/modules/{api,git}.ts` |
 | Entry UI | `apps/ui/src/features/start-screen/*` |
 
 ```
@@ -37,6 +38,19 @@ On the TypeScript side the choice is by **runtime**, not by target:
 `AgentTransport` in a plain browser. Inside the window, every target - local,
 ssh, remoteAgent - is served by the Rust commands, and Rust picks the
 implementation.
+
+## The second trait
+
+`Transport::git() -> Option<&dyn GitTransport>` reaches a second, smaller trait
+rather than adding git's methods to the first. Both are covered by the same
+architectural rule - git runs inside `mino-core`, never in a component or a
+Tauri command - and both are stubbed the same way, by a macro
+(`unimplemented_transport!` and `unimplemented_git_transport!`). See
+[git-module.md](git-module.md) and `plan/decisions.md` D2.
+
+`Some(self)` is what an unbuilt git surface returns, not `None`: `None` reads
+as "this target has no git", which is a different fact from "not written yet"
+and would send a reader to the wrong file.
 
 ## The path guard
 

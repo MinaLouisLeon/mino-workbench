@@ -14,6 +14,7 @@ import {
 
 import { editorTheme } from "@/theme/editorTheme";
 
+import { blameGutter } from "../blameGutter";
 import { languageFor } from "../languages";
 import type { CodeMirrorOptions } from "../types";
 
@@ -28,11 +29,12 @@ import type { CodeMirrorOptions } from "../types";
  */
 export function useCodeMirror(options: CodeMirrorOptions) {
   const container = useRef<HTMLDivElement | null>(null);
+  const view = useRef<EditorView | null>(null);
   // Read through refs so a changed handler does not rebuild the editor.
   const latest = useRef(options);
   latest.current = options;
 
-  const { revision, extension, editable, content } = options;
+  const { revision, extension, editable, content, visible, blame } = options;
   // The document arrives one render after the file loads, because the editor
   // state hook fills it in. Without this in the dependencies the effect would
   // run once with nothing to show and never run again, leaving a blank pane.
@@ -42,7 +44,7 @@ export function useCodeMirror(options: CodeMirrorOptions) {
     const parent = container.current;
     if (!parent || content === null) return;
 
-    const view = new EditorView({
+    const instance = new EditorView({
       parent,
       state: EditorState.create({
         doc: content,
@@ -69,6 +71,9 @@ export function useCodeMirror(options: CodeMirrorOptions) {
             indentWithTab,
           ]),
           editorTheme,
+          // Rebuilds the view when blame is toggled, which is why the toggle
+          // is explicit and never automatic: it changes the editor's shape.
+          ...blameGutter(blame),
           EditorState.readOnly.of(!editable),
           EditorView.editable.of(editable),
           EditorView.lineWrapping,
@@ -82,11 +87,23 @@ export function useCodeMirror(options: CodeMirrorOptions) {
       }),
     });
 
-    return () => view.destroy();
+    view.current = instance;
+    return () => {
+      instance.destroy();
+      view.current = null;
+    };
     // `content` is the *initial* document for this revision; typing must not
     // re-run this effect, which is why it is not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revision, extension, editable, hasContent]);
+  }, [revision, extension, editable, hasContent, blame]);
+
+  // Coming back from diff mode. The editor was hidden rather than destroyed -
+  // which is what keeps an unsaved draft and the cursor - but a CodeMirror
+  // that was laid out at zero height measures itself wrong, and without this
+  // it comes back blank until something else forces a redraw.
+  useEffect(() => {
+    if (visible) view.current?.requestMeasure();
+  }, [visible]);
 
   return container;
 }

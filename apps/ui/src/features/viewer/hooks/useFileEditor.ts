@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useTransport } from "@/context/TransportContext";
+import { useGitStatusContext } from "@/features/git/context/GitStatusContext";
 import { toTransportError, transportErrorMessage } from "@/lib/transportError";
 
-import { DraftStore } from "../drafts";
+import { useDrafts } from "../context/DraftsContext";
 import { VIEWER_COPY } from "../messages";
 import type { EditorState } from "../types";
 import { useFileViewer } from "./useFileViewer";
@@ -31,8 +32,15 @@ const IDLE: EditorState = {
 export function useFileEditor() {
   const viewer = useFileViewer();
   const transport = useTransport();
+  // A save is the one moment the working tree is known to have changed, so it
+  // is the one moment worth re-reading it. See `useGitStatus` for why that is
+  // an event and not a timer.
+  const { refresh: refreshGit } = useGitStatusContext();
   const [state, setState] = useState<EditorState>(IDLE);
-  const drafts = useRef(new DraftStore());
+  // Shared rather than owned: a discard in the source control panel clears the
+  // draft for the file it threw away, so the viewer cannot go on showing text
+  // that no longer exists anywhere. See `DraftsContext`.
+  const drafts = useDrafts();
 
   // Loading a file restores its remembered draft if there is one, so
   // switching away mid-edit and coming back does not lose the work.
@@ -42,20 +50,20 @@ export function useFileEditor() {
       setState(IDLE);
       return;
     }
-    const remembered = drafts.current.get(payload.path);
+    const remembered = drafts.get(payload.path);
     setState({
       ...IDLE,
       draft: remembered?.content ?? payload.content,
       baseline: payload.content,
       savedModifiedMs: payload.modifiedMs,
     });
-  }, [viewer.status, viewer.payload]);
+  }, [viewer.status, viewer.payload, drafts]);
 
   const onChange = useCallback(
     (draft: string) => {
       setState((current) => {
         if (viewer.path && current.baseline !== null) {
-          drafts.current.set(viewer.path, {
+          drafts.set(viewer.path, {
             content: draft,
             baseline: current.baseline,
           });
@@ -63,7 +71,7 @@ export function useFileEditor() {
         return { ...current, draft, justSaved: false };
       });
     },
-    [viewer.path],
+    [viewer.path, drafts],
   );
 
   const dirty = state.draft !== null && state.draft !== state.baseline;
@@ -81,7 +89,8 @@ export function useFileEditor() {
         content: draft,
         expectedModifiedMs: state.savedModifiedMs,
       });
-      drafts.current.clear(path);
+      drafts.clear(path);
+      refreshGit();
       setState((current) => ({
         ...current,
         baseline: draft,
@@ -102,19 +111,28 @@ export function useFileEditor() {
           error.kind === "conflict" ? VIEWER_COPY.conflict : transportErrorMessage(error),
       }));
     }
-  }, [transport, viewer.path, state.draft, state.baseline, state.savedModifiedMs, state.saving]);
+  }, [
+    transport,
+    refreshGit,
+    drafts,
+    viewer.path,
+    state.draft,
+    state.baseline,
+    state.savedModifiedMs,
+    state.saving,
+  ]);
 
   // Drafts live in memory only, so closing the window with edits pending
   // would lose them without this.
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!drafts.current.hasUnsaved()) return;
+      if (!drafts.hasUnsaved()) return;
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
+  }, [drafts]);
 
   // The "Saved" flash is a confirmation, not a state; it should not linger.
   useEffect(() => {

@@ -4,6 +4,9 @@ import { render } from "@testing-library/react";
 
 import type { ConnectionTarget, TransportClient } from "@/Types";
 import { TransportProvider } from "@/context/TransportContext";
+import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
+import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
+import { ViewerModeProvider } from "@/features/viewer/context/ViewerModeContext";
 import { SelectionProvider } from "@/features/workbench/context/SelectionContext";
 import {
   SessionProvider,
@@ -38,6 +41,10 @@ export function sshTarget(root: string): ConnectionTarget {
  *
  * `target` defaults to a local session. Pass `sshTarget(root)` for the cases
  * where being remote is the point.
+ *
+ * `GitStatusProvider` is here because the tree rows and the header read it,
+ * and because the fake defaults to "not a repository" - which means every
+ * existing test goes on asserting the no-git rendering without saying so.
  */
 export function renderConnected(
   ui: ReactNode,
@@ -48,9 +55,15 @@ export function renderConnected(
   return render(
     <TransportProvider client={client}>
       <SessionProvider>
-        <SelectionProvider>
-          <Connected target={target}>{ui}</Connected>
-        </SelectionProvider>
+        <DraftsProvider>
+          <GitStatusProvider>
+            <SelectionProvider>
+              <ViewerModeProvider>
+                <Connected target={target}>{ui}</Connected>
+              </ViewerModeProvider>
+            </SelectionProvider>
+          </GitStatusProvider>
+        </DraftsProvider>
       </SessionProvider>
     </TransportProvider>,
   );
@@ -62,7 +75,13 @@ export function withProviders(client: TransportClient) {
     return (
       <TransportProvider client={client}>
         <SessionProvider>
-          <SelectionProvider>{children}</SelectionProvider>
+          <DraftsProvider>
+            <GitStatusProvider>
+              <SelectionProvider>
+                <ViewerModeProvider>{children}</ViewerModeProvider>
+              </SelectionProvider>
+            </GitStatusProvider>
+          </DraftsProvider>
         </SessionProvider>
       </TransportProvider>
     );

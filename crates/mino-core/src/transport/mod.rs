@@ -1,4 +1,4 @@
-//! The one interface every filesystem, PTY and shell call goes through.
+//! The interface every filesystem, PTY and shell call goes through.
 //!
 //! This trait is the architectural rule of the project. No UI component and no
 //! Tauri command touches the filesystem or spawns a process; they call a
@@ -7,11 +7,18 @@
 //! [`crate::remote`] (compiling, every method returns
 //! [`TransportError::Unimplemented`]).
 //!
+//! Git is the one thing that is *not* on this trait. It is a second trait,
+//! [`GitTransport`], reached through [`Transport::git`]. Twenty-five git
+//! methods on one trait would make every implementation file and the stub
+//! macro grow for reasons that have nothing to do with cohesion, and "is there
+//! git here?" is better asked once, at the type level, than answered by every
+//! method separately. See `plan/decisions.md` D2.
+//!
 //! The TypeScript client in `apps/ui/src/Types/modules/api.ts` mirrors this
-//! trait one method for one method. The only deviation is `open_pty`: Rust
-//! returns a [`PtyStream`] (descriptor + channel), while TypeScript returns the
-//! descriptor and takes the stream through `onPtyEvent`, because a channel
-//! cannot cross the IPC boundary.
+//! trait one method for one method, and `client.git` mirrors the second one.
+//! The only deviation is `open_pty`: Rust returns a [`PtyStream`] (descriptor +
+//! channel), while TypeScript returns the descriptor and takes the stream
+//! through `onPtyEvent`, because a channel cannot cross the IPC boundary.
 
 use async_trait::async_trait;
 
@@ -21,6 +28,10 @@ use crate::types::{
     PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
     StructuredRequest, WriteRequest,
 };
+
+mod git;
+
+pub use git::GitTransport;
 
 #[async_trait]
 pub trait Transport: Send + Sync + 'static {
@@ -82,4 +93,9 @@ pub trait Transport: Send + Sync + 'static {
     /// Reports whether `nu` is on the target's PATH and what would be spawned
     /// instead. Drives the fallback notice and the tree's degrade path.
     async fn probe_shell(&self) -> Result<ShellProbe>;
+
+    /// The git surface for this session, or `None` where the target has no
+    /// concept of one. Not an error, and not "this folder is not a
+    /// repository" either - that question is [`GitTransport::repository`]'s.
+    fn git(&self) -> Option<&dyn GitTransport>;
 }

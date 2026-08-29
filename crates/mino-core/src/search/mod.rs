@@ -6,6 +6,7 @@
 //! when a result set is truncated.
 
 pub mod fuzzy;
+pub mod ignore;
 mod scoring;
 
 use std::time::{Duration, Instant};
@@ -14,6 +15,8 @@ use crate::types::{
     DirEntry, EntryKind, SearchHit, SearchHits, SearchQuery, MAX_SCANNED_ENTRIES,
     SEARCH_TIMEOUT_MS, SKIPPED_DIRECTORIES,
 };
+
+pub use ignore::IgnoreSet;
 
 /// True for a directory a walk must not descend into. Matched on the
 /// directory's own name, so `node_modules` is skipped at any depth.
@@ -49,6 +52,10 @@ pub struct Collector {
     scanned: u32,
     truncated: bool,
     deadline: Instant,
+    /// What git said it would not look at. Empty unless a transport supplied
+    /// one, which is what makes ignoring an addition to the skip list rather
+    /// than a replacement for it.
+    ignores: IgnoreSet,
 }
 
 impl Collector {
@@ -62,13 +69,34 @@ impl Collector {
             scanned: 0,
             truncated: false,
             deadline: Instant::now() + Duration::from_millis(SEARCH_TIMEOUT_MS),
+            ignores: IgnoreSet::default(),
         }
+    }
+
+    /// Adds git's ignore rules to this walk.
+    ///
+    /// A builder rather than a constructor argument, so a transport that has
+    /// no git - or whose git call failed - simply does not call it and keeps
+    /// today's behaviour exactly.
+    pub fn with_ignores(mut self, ignores: IgnoreSet) -> Self {
+        self.ignores = ignores;
+        self
+    }
+
+    /// True for a path the walk should neither offer nor descend into. Asked
+    /// by the walk for directories, and applied by [`Collector::offer`] for
+    /// everything else, so the two cannot disagree.
+    pub fn is_ignored(&self, relative: &str) -> bool {
+        self.ignores.contains(relative)
     }
 
     /// Offers one visited entry. `relative` is its root-relative path, which
     /// is what the query is matched against.
     pub fn offer(&mut self, entry: DirEntry, relative: String) {
         self.scanned += 1;
+        if self.is_ignored(&relative) {
+            return;
+        }
         if entry.hidden && !self.include_hidden {
             return;
         }

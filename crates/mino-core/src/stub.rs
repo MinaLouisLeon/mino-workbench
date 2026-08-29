@@ -1,9 +1,15 @@
 //! Shared body for a transport that compiles but is not built yet.
 //!
-//! The SSH and remote-agent transports both need all thirteen methods to exist
-//! and to answer with a typed `Unimplemented` error rather than a panic. That
-//! body is identical for both, so it lives here once instead of being copied
-//! into each module.
+//! A transport that is declared but not built needs all fourteen methods to
+//! exist and to answer with a typed `Unimplemented` error rather than a panic.
+//! That body lives here once instead of being copied into each module.
+//!
+//! `git` is the one method that cannot answer with an error, because it
+//! returns an `Option` rather than a `Result`. It returns `Some(self)`, so the
+//! *call* fails with `Unimplemented` instead of the surface disappearing -
+//! which means a type using this macro must also invoke
+//! [`crate::unimplemented_git_transport`]. Returning `None` here would be a
+//! lie: it reads as "this target has no git", not "this is not written yet".
 
 /// Generates `impl Transport` where every method returns
 /// [`crate::TransportError::Unimplemented`] naming the transport and the
@@ -98,6 +104,10 @@ macro_rules! unimplemented_transport {
 
             async fn probe_shell(&self) -> $crate::Result<$crate::types::ShellProbe> {
                 Err($crate::TransportError::unimplemented($kind, "probe_shell"))
+            }
+
+            fn git(&self) -> Option<&dyn $crate::transport::GitTransport> {
+                Some(self)
             }
         }
     };

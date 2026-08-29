@@ -1,3 +1,6 @@
+import { GIT_BADGE_CLASSES } from "@/features/git/badges";
+import { useGitEntry } from "@/features/git/hooks/useGitEntry";
+
 import { useTreeRow } from "../context/TreeRowContext";
 
 const INDENT_PER_LEVEL_PX = 14;
@@ -44,12 +47,39 @@ const ICONS = {
 
 export function TreeRowLabel() {
   const { row, selected } = useTreeRow();
+  const { ignored } = useGitEntry(row.entry.path);
+  // An ignored entry is dimmed exactly the way a hidden one already is,
+  // rather than being given a tone of its own: both mean "here, but not what
+  // you are looking for", and the tree should say that one way.
   const tone = selected
     ? "text-accentStrong"
-    : row.entry.hidden
+    : row.entry.hidden || ignored
       ? "text-textFaint"
       : "text-text";
   return <span className={`truncate ${tone}`}>{row.entry.name}</span>;
+}
+
+/**
+ * The git badge: one letter, in the tone for what happened to the file.
+ *
+ * A new part rather than a change to an existing one, so a row without git
+ * renders precisely as it did before - this returns `null` and the row is
+ * unchanged. The letter is `aria-hidden` and paired with a real word, because
+ * a screen reader cannot be expected to know that "M" means modified.
+ */
+export function TreeRowGitStatus() {
+  const { row } = useTreeRow();
+  const { badge } = useGitEntry(row.entry.path);
+  if (!badge) return null;
+  return (
+    <span
+      className={`ml-auto shrink-0 pl-2 text-xs font-semibold ${GIT_BADGE_CLASSES[badge.tone]}`}
+      title={badge.label}
+    >
+      <span aria-hidden="true">{badge.letter}</span>
+      <span className="sr-only">{badge.label}</span>
+    </span>
+  );
 }
 
 /** Per-row loading and error state; a failed level does not blank the tree. */

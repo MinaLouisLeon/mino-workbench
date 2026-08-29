@@ -1,4 +1,5 @@
 import { Notice } from "@/components/ui";
+import { GitBranchStatus } from "@/features/git/components/GitBranchStatus";
 
 import { useSessionContext } from "../context/SessionContext";
 import { useChangeFolder } from "../hooks/useChangeFolder";
@@ -22,7 +23,11 @@ export function WorkbenchHeader() {
           </span>
           <Breadcrumb path={connection?.root ?? null} />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-3">
+          {/* Reads GitStatusContext rather than taking props: the header is
+              already at its prop budget, and the branch, the dirty marker and
+              the ahead/behind counts are four more. */}
+          <GitBranchStatus />
           <button
             type="button"
             onClick={() => void request()}

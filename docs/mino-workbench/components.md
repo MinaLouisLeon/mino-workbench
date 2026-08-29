@@ -28,6 +28,9 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | workbench | `WorkbenchHeader` | Label, breadcrumb, "Close folder" |
 | workbench | `Breadcrumb` | Segments from Nushell `path split`, degrading to a TS split |
 | file-tree | `FileTreePane` / `TreeRows` / `TreeRow` / `TreeRowParts` | Compound row, see the flow doc |
+| git | `GitBranchStatus` | Header strip: branch, dirty marker, ahead/behind. Takes no props - reads `GitStatusContext` |
+| source-control | `SourceControlPane` / `ChangeGroup` / `ChangeRow` / `ChangeRowParts` / `CommitBox` / `DiscardConfirm` / `HistorySection` | The third rail view. `DiscardConfirm` is an `alertdialog` whose confirm button names the consequence |
+| viewer | `ViewerModeToggle` / `DiffView` / `DiffLines` | File / Diff / Blame. The toggle takes no props - it reads `ViewerModeContext`, which the history list also writes to |
 | sidebar | `ActivityBar` / `ActivityBarButton` | The icon rail; one button per entry in `views.ts` |
 | sidebar | `SidebarPanel` | Renders every view, hiding the inactive ones rather than unmounting them |
 | search | `SearchPane` / `SearchField` / `SearchResults` | Presentational; wiring in `useFileSearch` |
@@ -38,9 +41,10 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 
 ## The compound rows
 
-Repeated list items are built as compound components. There are two: `TreeRow`
-in the file tree and `SearchRow` in the search results. Both follow the same
-shape, so this is the pattern to copy for a third:
+Repeated list items are built as compound components. There are three:
+`TreeRow` in the file tree, `SearchRow` in the search results and `ChangeRow`
+in source control. All three follow the same shape, which is now load-bearing
+rather than incidental:
 
 ```tsx
 <TreeRowProvider value={{ row, selected, onActivate, onExpandKey }}>
@@ -49,6 +53,7 @@ shape, so this is the pattern to copy for a third:
     <TreeRow.Chevron />
     <TreeRow.Icon />
     <TreeRow.Label />
+    <TreeRow.GitStatus />
     <TreeRow.Status />
   </TreeRow>
 </TreeRowProvider>
@@ -56,7 +61,9 @@ shape, so this is the pattern to copy for a third:
 
 Each part calls `useTreeRow()` - and each `SearchRow` part calls
 `useSearchRow()`. Reordering or replacing a part needs no prop changes
-anywhere.
+anywhere. `TreeRow.GitStatus` is what adding a part looks like: a new member on
+the compound, never a change to an existing one, so a row without git renders
+precisely as it did before.
 
 ## Icons
 

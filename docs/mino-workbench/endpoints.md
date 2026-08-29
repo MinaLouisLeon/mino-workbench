@@ -26,6 +26,42 @@ Defined in `crates/mino-core/src/transport.rs`. Mirrored one-for-one by
 | `probe_shell` (`transport.rs`) | Tauri `probe_shell` · agent `{"method":"probeShell"}` | – | `ShellProbe` |
 | *(stream)* | Tauri event `pty://<id>` · agent `{"result":"ptyEvent"}` | – | `PtyEvent` |
 
+## The git interface
+
+A **second** trait, `mino_core::transport::GitTransport`, reached from the
+first through `Transport::git() -> Option<&dyn GitTransport>` and mirrored in
+TypeScript as `client.git`. Twenty-five eventual git methods on one trait would
+make every implementation file and the stub macro grow for reasons that have
+nothing to do with cohesion - see `plan/decisions.md` D2.
+
+| Function (file) | Method · Endpoint | Params / Body | Returns |
+| --- | --- | --- | --- |
+| `repository` (`transport/git.rs`) | Tauri `git_repository` · agent *(not yet)* | – | `GitRepository \| null` |
+| `status` (`transport/git.rs`) | Tauri `git_status` · agent *(not yet)* | – | `GitStatus` |
+| `stage` (`transport/git.rs`) | Tauri `git_stage` · agent *(not yet)* | `paths: string[]` | `void` |
+| `unstage` (`transport/git.rs`) | Tauri `git_unstage` · agent *(not yet)* | `paths: string[]` | `void` |
+| `discard` (`transport/git.rs`) | Tauri `git_discard` · agent *(not yet)* | `paths: string[]` | `void` |
+| `commit` (`transport/git.rs`) | Tauri `git_commit` · agent *(not yet)* | `request: CommitRequest` | `GitCommit` |
+| `diff` (`transport/git.rs`) | Tauri `git_diff` · agent *(not yet)* | `request: DiffRequest` | `GitDiff` |
+| `log` (`transport/git.rs`) | Tauri `git_log` · agent *(not yet)* | `request: LogRequest` | `GitLog` |
+| `show` (`transport/git.rs`) | Tauri `git_show` · agent *(not yet)* | `revision: string` | `GitCommitDetail` |
+| `commit_diff` (`transport/git.rs`) | Tauri `git_commit_diff` · agent *(not yet)* | `revision: string`, `path: string \| null` | `GitDiff` |
+| `blame` (`transport/git.rs`) | Tauri `git_blame` · agent *(not yet)* | `path: string` | `GitBlame` |
+
+`repository` returning `null` is an **answer**, not a failure: most folders are
+not repositories, and the UI renders that as a quiet state. Git being absent
+from the target *is* a failure, reported once by this call so every git surface
+can go quiet for the session rather than failing per call.
+
+`status` rejects with `invalidArgument` when the folder is not a repository, so
+a caller that skipped `repository` is told rather than handed an empty status.
+
+On the four mutating methods an **empty `paths` array means everything** - it
+is what the group-level controls send - and every path is guarded against the
+connected root before git is spawned. `discard` is the only call on this
+interface that destroys data; see the discard rule in
+[git-module.md](git-module.md).
+
 ### The one deviation
 
 Rust's `open_pty` returns `PtyStream { session, events }` - a descriptor plus a
@@ -68,7 +104,47 @@ SearchHits       = { hits: SearchHit[], truncated: boolean, scanned: number }
 StructuredRequest  = { pipeline: string, params: Record<string,string>,
                        cwd: string | null, timeoutMs: number | null }
 StructuredOutput   = { value: unknown, stderr: string }
+
+GitRepository    = { root: string, branch: string | null, head: string | null,
+                     detached: boolean, upstream: string | null,
+                     ahead: number, behind: number }
+GitFileState     = "unmodified" | "modified" | "added" | "deleted" | "renamed"
+                 | "copied" | "untracked" | "ignored" | "conflicted"
+                 | "typeChanged"
+GitEntry         = { path: string, relativePath: string,
+                     index: GitFileState, worktree: GitFileState,
+                     originalPath: string | null }
+GitStatus        = { repository: GitRepository, entries: GitEntry[],
+                     truncated: boolean }
+CommitRequest    = { message: string, all: boolean, amend: boolean }
+GitCommit        = { sha: string, shortSha: string, summary: string,
+                     author: string, timestampMs: number }
+DiffRequest      = { path: string | null, staged: boolean,
+                     against: string | null }
+GitDiffLineKind  = "context" | "added" | "removed"
+GitDiffLine      = { kind: GitDiffLineKind, content: string,
+                     oldLine: number | null, newLine: number | null,
+                     noNewline: boolean }
+GitHunk          = { oldStart: number, oldLines: number, newStart: number,
+                     newLines: number, header: string, lines: GitDiffLine[] }
+GitFileDiff      = { relativePath: string, oldPath: string | null,
+                     binary: boolean, hunks: GitHunk[] }
+GitDiff          = { files: GitFileDiff[], truncated: boolean }
+LogRequest       = { limit: number | null, skip: number, path: string | null }
+GitLog           = { commits: GitCommit[], truncated: boolean }
+GitChangedFile   = { relativePath: string, oldPath: string | null,
+                     state: GitFileState }
+GitCommitDetail  = { commit: GitCommit, files: GitChangedFile[] }
+GitBlameLine     = { line: number, sha: string, shortSha: string,
+                     author: string, timestampMs: number, summary: string }
+GitBlame         = { relativePath: string, lines: GitBlameLine[],
+                     truncated: boolean }
 ```
+
+`GitEntry` carries **two** states because staged-and-then-modified-again is a
+real condition: `index` is the staged side and `worktree` the unstaged one.
+`GitRepository.root` is the work tree root, which may sit above the connected
+root.
 
 ### Validation rules
 
@@ -83,6 +159,20 @@ StructuredOutput   = { value: unknown, stderr: string }
 | `StructuredRequest.timeoutMs` | Defaults to 10 000 ms, clamped to 60 000 ms | `timeout` |
 | `StructuredRequest.cwd` | Resolved through the path guard like any path | `pathEscapesRoot` |
 | `PtySize` | `cols`/`rows` raised to at least 1 | – |
+| every git argument | Fixed program text; argv only, never a command line | – |
+| git working directory (SSH) | Single-quoted; a path containing `'` is refused, not escaped | `invalidArgument` |
+| `GitStatus.entries` | Rows outside the connected root are dropped before returning | – |
+| `GitStatus.entries` | Capped at 10 000 (`MAX_STATUS_ENTRIES`) | `truncated: true` |
+| `git_status` outside a repository | Refused rather than answered with an empty status | `invalidArgument` |
+| every git path argument | `..`/`.` segments refused; must sit inside the connected root; the root itself is not a path | `pathEscapesRoot` / `invalidArgument` |
+| a batch of git paths | All-or-nothing: one refused path runs none of them | `pathEscapesRoot` |
+| `CommitRequest.message` | Non-empty after trimming, at most 64 KiB. Sent on stdin, never in argv | `invalidArgument` |
+| `git_commit` with nothing staged | Refused rather than a silent no-op | `invalidArgument` |
+| every revision (`against`, `show`, `commit_diff`) | No leading `-`; only `[A-Za-z0-9/._-^~@{}:]`; at most 256 chars. Placed *in front* of `--` | `invalidArgument` |
+| `GitDiff` | Cut at 20 000 lines (`MAX_DIFF_LINES`); a binary file reports `binary` and no hunks | `truncated: true` |
+| `LogRequest.limit` | Defaults to 50, clamped to 500 | – |
+| `git_log` on an unborn branch | An empty page, not an error | – |
+| `GitBlame` | Cut at 50 000 lines (`MAX_BLAME_LINES`) | `truncated: true` |
 
 ### Error shape
 

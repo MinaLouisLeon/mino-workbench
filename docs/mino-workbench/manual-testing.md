@@ -230,3 +230,125 @@ refusing to.
 | TC-130 | **security** - SSH session | Search for `'; touch /tmp/pwned; '` | Treated as text: it simply matches nothing. Confirm no file was created on the host | `search_files` over SFTP | High |
 | TC-131 | SSH session | Search a remote tree | Remote files are found and rank the same way local ones do | `search_files` over SFTP | High |
 | TC-132 | Connected | Tab into the rail and through the sidebar | Every rail button is reachable and its focus ring is visible; Enter activates it | none | High |
+
+## 15. Git
+
+Every case here has a **not a repository** twin worth trying once: open a plain
+folder and confirm the workbench looks exactly as it did before git existed -
+no badges, no header strip, no error.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-133 | A git repository open | Look at the header | The branch name is shown beside the folder | `git_repository` | High |
+| TC-134 | A clean repository | Look at the header | No dirty marker | `git_status` | High |
+| TC-135 | Repository with an edited file | Look at the header | A dot marks the branch dirty; hovering explains it | `git_status` | High |
+| TC-136 | Branch tracking a remote, with unpushed commits | Look at the header | An up arrow and the count; hovering says "N commits to push" | `git_status` | Medium |
+| TC-137 | Branch behind its remote | Look at the header | A down arrow and the count | `git_status` | Medium |
+| TC-138 | Detached HEAD (`git checkout --detach`) | Look at the header | "detached" and the short sha, in the warning tone - not an empty space | `git_repository` | Medium |
+| TC-139 | Fresh `git init`, no commit yet | Open the folder | The branch name shows; hovering says it has no commits yet | `git_repository` | Medium |
+| TC-140 | Repository with an edited file | Look at the tree | An `M` beside the file, and only beside that file | `git_status` | High |
+| TC-141 | A newly created, unstaged file | Look at the tree | A `U` beside it | `git_status` | High |
+| TC-142 | `git add` a new file | Refocus the window | An `A` appears | `git_status` | High |
+| TC-143 | Stage a change, then edit the file again | Look at the tree | `M` - the unstaged side, which is the change you are making now | `git_status` | Medium |
+| TC-144 | A file deleted from disk but not from git | Look at the tree | A `D` beside it | `git_status` | Medium |
+| TC-145 | `git mv` a file, then look at the tree | The renamed file | An `R` beside the new name | `git_status` | Medium |
+| TC-146 | A repository with a merge conflict | Look at the tree | A `!` in the danger tone on the conflicted file | `git_status` | Medium |
+| TC-147 | A repository with `node_modules` or `target` ignored | Expand that folder in the tree | The rows are dimmed, like hidden files, and carry no badge | `git_status` | High |
+| TC-148 | Repository open, a file edited in the viewer | Press Ctrl+S | The badge appears within a moment, without touching anything else | `write_file`, then `git_status` | High |
+| TC-149 | Repository open | Edit a file in another program, then click back into the workbench | The badge updates on focus | `git_status` | High |
+| TC-150 | Repository open | Save several files quickly | One status call, not one per save (watch the log) | a single `git_status` | Medium |
+| TC-151 | A repository with `.gitignore` | Search for a name that exists only inside an ignored folder | Nothing is found | `search_files` | High |
+| TC-152 | A plain folder with a `generated/` directory | Search for a file inside it | It **is** found: with no repository there is nothing to ignore | `search_files` | High |
+| TC-153 | **security** - a repository whose root is above the open folder | Open a sub-directory, then look at the tree and header | The branch shows, but only files inside the open folder carry badges | `git_status` | High |
+| TC-154 | A repository with a filename containing a space and one containing an accent | Edit both | Both get badges, on the right rows | `git_status` | Medium |
+| TC-155 | **security** - SSH session on a remote repository | Look at the header and tree | The remote host's git answers; badges and branch behave as they do locally | `git_status` over SSH | High |
+| TC-156 | SSH session, a remote path containing a single quote | Open it | Refused with a clear sentence, not a mangled command | `git_status` refusing | High |
+| TC-157 | A machine with `git` renamed off PATH | Open a repository | "git is not available here" in the header, once. The tree, search and the terminal all still work | `git_repository` failing | High |
+| TC-158 | Repository open | Run `git commit` in the terminal pane while the workbench is idle | It succeeds: no index lock is held against it | none | High |
+| TC-159 | A repository with thousands of changes | Open it | The tree still responds; the list says it is partial rather than implying the rest is clean | `git_status` with `truncated` | Medium |
+| TC-160 | Repository open | Tab to a tree row with a badge with a screen reader on | The state is read as a word ("Modified"), not as the letter | none | High |
+
+## 16. Source control
+
+The panel that stages and commits. **TC-176 to TC-180 are data-loss cases** -
+run them the way the editor's data-loss cases are run, and check the file on
+disk afterwards rather than trusting the UI.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-161 | A repository with changes | Click the branch icon in the rail | The source control view opens; Files is no longer lit | none | High |
+| TC-162 | A plain folder, not a repository | Open the source control view | "Not a repository", no controls, no error | `git_repository` | High |
+| TC-163 | A clean repository | Open the source control view | "Nothing to commit", and no groups | `git_status` | High |
+| TC-164 | An edited file and a new file | Look at the panel | Both under Changes, with the count `2`; the letters match the file tree's | `git_status` | High |
+| TC-165 | `git add` one of them in the terminal, then refocus | Look at the panel | It moves to Staged changes, and the counts follow | `git_status` | High |
+| TC-166 | Stage a file, then edit it again | Look at the panel | It appears in **both** groups - that is correct, not a duplicate | `git_status` | High |
+| TC-167 | An edited file | Click its `+` | Only that file stages. Confirm with `git status` in the terminal | `git_stage` with one path | High |
+| TC-168 | A staged file | Click its `−` | Only that file unstages; the file on disk is unchanged | `git_unstage` | High |
+| TC-169 | Several changes | Click `Stage all` on the Changes header | Everything stages, untracked files included | `git_stage` with `[]` | High |
+| TC-170 | Several staged | Click `Unstage all` | Everything unstages | `git_unstage` with `[]` | Medium |
+| TC-171 | Anything staged | Type a message, click Commit | It commits; the box clears and names the new commit. Confirm with `git log` | `git_commit` | High |
+| TC-172 | Anything staged | Type a message, press Ctrl+Enter | Same as TC-171 | `git_commit` | Medium |
+| TC-173 | Nothing typed | Look at Commit | Disabled, and it says "Write a commit message first" | none | High |
+| TC-174 | A message typed, nothing staged | Look at Commit | Disabled, and it says "Stage something to commit" | none | High |
+| TC-175 | **data loss** - a repository with `user.email` unset (`git config --unset user.email`) | Type a long message and commit | It fails with a sentence naming `user.email`, **and the message is still in the box** | `git_commit` failing | High |
+| TC-176 | **data loss** - an edited file | Click its discard arrow | A confirmation naming the file. Nothing has happened yet | none | High |
+| TC-177 | **data loss** - that confirmation open | Click "Keep my changes" | It closes and the file is untouched. Confirm the edit is still on disk | none | High |
+| TC-178 | **data loss** - that confirmation open | Read the confirm button | It says "Discard <file>", not "OK"; "Keep my changes" is the focused button | none | High |
+| TC-179 | **data loss** - an edited file | Discard it and confirm | The file returns to its committed content, **and no other file changes**. Check `git status` | `git_discard` with one path | High |
+| TC-180 | **data loss** - unsaved edits open in the viewer for that file | Discard it in the panel, then press Ctrl+S in the viewer | The stale draft is gone; saving cannot write back text that was discarded | `git_discard` | High |
+| TC-181 | Several edited files plus one untracked | Click `Discard all` | The confirmation counts only the **tracked** ones; the untracked file survives | `git_discard` | High |
+| TC-182 | An untracked file | Look at its row | No discard control. Hovering explains there is nothing to restore it from | none | High |
+| TC-183 | Any change | Click a row's path | The file opens in the viewer, exactly as a tree row would | `read_file` | High |
+| TC-184 | A deleted file (`rm` a tracked file) | Look at the panel and click the row | It appears with `D`; opening it says the file is gone rather than doing nothing | `git_status` | Medium |
+| TC-185 | A file with a space and one with an accent in the name | Stage, commit and discard each | All three work on the right file | `git_stage`, `git_commit`, `git_discard` | Medium |
+| TC-186 | Any action | Watch the list after it completes | It refreshes once, on completion - not on a timer, and not mid-click | one `git_status` per action | Medium |
+| TC-187 | A repository with an in-progress `index.lock` | Try to stage | It fails with git's own sentence, and the list still shows | `git_stage` failing | Medium |
+| TC-188 | **security** - SSH session on a remote repository | Stage, commit and discard | All three run on the remote host; confirm with `git log` there | over SSH | High |
+| TC-189 | **security** - SSH session, a file whose name contains a single quote | Try to stage it | Refused with a clear sentence, not a mangled command | `git_stage` refusing | High |
+| TC-190 | A commit message containing an apostrophe, over SSH | Commit it | It commits with the apostrophe intact - the message goes on stdin, not the command line | `git_commit` over SSH | High |
+| TC-191 | A fresh `git init`, one file staged | Unstage it | It unstages. (`git restore --staged` would fail here; the app uses `git reset`) | `git_unstage` | Medium |
+| TC-192 | Source control open | Tab through the panel with a screen reader | Every control has a spoken name; the state letter is read as a word | none | High |
+
+## 17. Diff, history and blame
+
+Everything here is read-only - nothing in this section can change a
+repository - so the risk is a **wrong answer** rather than lost work. Check the
+answers against `git diff`, `git log` and `git blame` in the terminal pane
+rather than trusting the pane.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-193 | A repository, a file open in the viewer | Look at the pane header | File / Diff, and Blame beside them | none | High |
+| TC-194 | A file with no changes | Click Diff | "No changes", not an empty pane or an error | `git_diff` | High |
+| TC-195 | An edited file | Click Diff | The same hunks `git diff <file>` shows, with both line numbers | `git_diff` | High |
+| TC-196 | An edited file, diff showing | Compare the line numbers against `git diff` | Added lines number only on the right, removed only on the left | `git_diff` | High |
+| TC-197 | Connected | Open a file, click Diff, then File | Nothing is read for the diff until Diff is clicked (watch the log) | one `git_diff` | Medium |
+| TC-198 | **data loss** - a file with unsaved edits in the viewer | Click Diff, then File | The unsaved text is still there, and the cursor is where you left it | none | High |
+| TC-199 | **data loss** - unsaved edits, diff showing | Press Ctrl+S | Nothing is saved from diff mode; the draft is intact when you return | none | High |
+| TC-200 | A binary file with changes | Click Diff | "Binary file", not a wall of noise | `git_diff` | High |
+| TC-201 | A renamed file (`git mv`, staged) | Open the new name, click Diff | It says what it was renamed from | `git_diff` | Medium |
+| TC-202 | A file with no trailing newline, edited | Click Diff | The affected line is marked "no newline at end of file" | `git_diff` | Medium |
+| TC-203 | A very large generated file, heavily changed | Click Diff | It comes back promptly and says the diff was cut short | `git_diff` with `truncated` | Medium |
+| TC-204 | A file with a space and one with an accent in the name | Diff each | The right file, named correctly | `git_diff` | High |
+| TC-205 | A repository with commits | Open source control and scroll to History | Subject, author, relative time and short sha for each | `git_log` | High |
+| TC-206 | History showing | Hover a commit's time | The full timestamp | none | Low |
+| TC-207 | History showing | Click a commit | Its files appear beneath it, with the same state letters the tree uses | `git_show` | High |
+| TC-208 | A commit expanded | Click it again | It closes | none | Medium |
+| TC-209 | A commit expanded | Click one of its files | The viewer shows **that commit's** diff for it, not the working tree's | `git_commit_diff` | High |
+| TC-210 | A commit that deleted a file | Expand it and click the deleted file | Its diff still shows, even though the file is not on disk | `git_commit_diff` | High |
+| TC-211 | A repository with more than 25 commits | Scroll to the end of History | "Show more", and clicking it appends the next page without repeating | `git_log` with `skip` | High |
+| TC-212 | A repository with fewer than 25 commits | Look at the end of History | No "Show more" | none | Medium |
+| TC-213 | A fresh `git init`, no commits | Open source control | "No commits yet.", not an error | `git_log` | High |
+| TC-214 | The repository's very first commit | Expand it in History and open a file | Its diff shows every line as added; a root commit still has a diff | `git_commit_diff` | High |
+| TC-215 | A file open in the viewer | Click Blame | Author and short sha beside each line, aligned with the code | `git_blame` | High |
+| TC-216 | Blame showing | Look at a block of lines from one commit | The author appears once, on the first line of the block | `git_blame` | Medium |
+| TC-217 | Blame showing | Hover a gutter entry | Short sha, author and the commit's subject | none | Medium |
+| TC-218 | Blame showing | Click Blame again | The gutter goes away and the file is unchanged | none | High |
+| TC-219 | Connected | Open a file and watch the log | Blame is **not** read until it is turned on | none until clicked | High |
+| TC-220 | Blame showing | Click Diff | Blame is not offered in diff mode - there are no lines to attribute | none | Medium |
+| TC-221 | A file not in HEAD (brand new, untracked) | Turn on Blame | A clear sentence, and the file still readable underneath | `git_blame` failing | High |
+| TC-222 | **security** - connected | Try to diff or blame a path outside the folder (via the transport) | Refused with `pathEscapesRoot`, and nothing is read | refused | High |
+| TC-223 | **security** - connected | Try a revision of `--upload-pack=touch pwned` (via the transport) | Refused with a sentence; confirm no file named `pwned` was created | refused before git ran | High |
+| TC-224 | **security** - SSH session on a remote repository | Diff, log and blame | All three run on the remote host and agree with `git` there | over SSH | High |
+| TC-225 | Blame on a large file (5 000+ lines) | Turn it on | It arrives without freezing the pane; the gutter lines up | `git_blame` | Medium |
+| TC-226 | Diff showing | Tab through the diff with a screen reader | Each line is read as added, removed or unchanged - not by its colour | none | High |
