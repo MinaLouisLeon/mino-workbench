@@ -88,6 +88,34 @@ Conventions and the architectural rule are in [`CLAUDE.md`](CLAUDE.md).
 - Saving refuses to overwrite a file that changed since it was opened.
 - Local storage holds layout preferences and nothing else.
 
+## Releases
+
+Merging `dev` into `main` is the whole release process. From there
+[the workflow](.github/workflows/release-windows.yml) does the rest with no
+manual step:
+
+1. verifies the branch - types, lint, tests, clippy, formatting;
+2. bumps the patch version in `tauri.conf.json`, `Cargo.toml` and both
+   `package.json` files together, via `scripts/bump-version.mjs`;
+3. clears any previous bundle output, then builds the Windows `.exe`;
+4. commits the bump back to `main`, tags it `v<version>`, and publishes a
+   release with the installer attached.
+
+Windows is the only target in this version.
+
+The order matters: the installer is built **before** the bump is pushed, so a
+failed build leaves `main` untouched rather than bumped to a version that
+never shipped. The bundle directory is cleared first because the build cache
+can still hold the previous version's installer, and releasing the wrong one
+would be worse than a slow build.
+
+To move the minor or major version instead of the patch, run the workflow by
+hand from the Actions tab and pick the part to bump.
+
+Past releases keep their installers, so an older version stays downloadable.
+
+Builds are **not code-signed**, so Windows SmartScreen warns on first run.
+
 ## Status
 
 Phase 1 and 2 are done: local and SSH transports, the editor, terminal splits.
