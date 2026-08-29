@@ -5,6 +5,7 @@ import { render } from "@testing-library/react";
 import type { ConnectionTarget, TransportClient } from "@/Types";
 import { TransportProvider } from "@/context/TransportContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
+import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
 import { SelectionProvider } from "@/features/workbench/context/SelectionContext";
 import {
   SessionProvider,
@@ -53,11 +54,13 @@ export function renderConnected(
   return render(
     <TransportProvider client={client}>
       <SessionProvider>
-        <GitStatusProvider>
-          <SelectionProvider>
-            <Connected target={target}>{ui}</Connected>
-          </SelectionProvider>
-        </GitStatusProvider>
+        <DraftsProvider>
+          <GitStatusProvider>
+            <SelectionProvider>
+              <Connected target={target}>{ui}</Connected>
+            </SelectionProvider>
+          </GitStatusProvider>
+        </DraftsProvider>
       </SessionProvider>
     </TransportProvider>,
   );
@@ -69,9 +72,11 @@ export function withProviders(client: TransportClient) {
     return (
       <TransportProvider client={client}>
         <SessionProvider>
-          <GitStatusProvider>
-            <SelectionProvider>{children}</SelectionProvider>
-          </GitStatusProvider>
+          <DraftsProvider>
+            <GitStatusProvider>
+              <SelectionProvider>{children}</SelectionProvider>
+            </GitStatusProvider>
+          </DraftsProvider>
         </SessionProvider>
       </TransportProvider>
     );

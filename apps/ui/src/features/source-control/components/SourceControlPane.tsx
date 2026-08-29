@@ -1,0 +1,136 @@
+import { Minus, Plus, Undo2 } from "lucide-react";
+
+import { Notice, Pane, StatusMessage } from "@/components/ui";
+import { useGitStatusContext } from "@/features/git/context/GitStatusContext";
+import { useSelection } from "@/features/workbench/context/SelectionContext";
+
+import { useSourceControl } from "../hooks/useSourceControl";
+import { SOURCE_CONTROL_COPY } from "../messages";
+import { ChangeGroup } from "./ChangeGroup";
+import { CommitBox } from "./CommitBox";
+import { DiscardConfirm } from "./DiscardConfirm";
+
+const GROUP_ACTION_CLASSES =
+  "rounded p-1 text-textFaint hover:bg-surfaceHover hover:text-text focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong disabled:opacity-40";
+
+/** Presentational: every decision it renders comes from useSourceControl. */
+export function SourceControlPane() {
+  const { availability } = useGitStatusContext();
+  const { selected } = useSelection();
+  const control = useSourceControl();
+
+  if (availability === "absent" || availability === "notARepository") {
+    const absent = availability === "absent";
+    return (
+      <Pane title={SOURCE_CONTROL_COPY.title}>
+        <StatusMessage
+          title={
+            absent
+              ? SOURCE_CONTROL_COPY.absentTitle
+              : SOURCE_CONTROL_COPY.notARepositoryTitle
+          }
+          description={
+            absent
+              ? SOURCE_CONTROL_COPY.absentDescription
+              : SOURCE_CONTROL_COPY.notARepositoryDescription
+          }
+        />
+      </Pane>
+    );
+  }
+
+  if (availability === "loading") {
+    return (
+      <Pane title={SOURCE_CONTROL_COPY.title}>
+        <StatusMessage title={SOURCE_CONTROL_COPY.loadingTitle} />
+      </Pane>
+    );
+  }
+
+  const empty = control.stagedCount === 0 && control.changesCount === 0;
+
+  return (
+    <Pane title={SOURCE_CONTROL_COPY.title}>
+      {/* Relative, so the discard confirmation covers this pane and not the
+          whole window: it is about a file in this list. */}
+      <div className="relative flex h-full min-h-0 flex-col">
+        <CommitBox state={control.commitState} />
+
+        {control.error ? (
+          <div className="px-2 pt-2">
+            <Notice variant="danger" title={SOURCE_CONTROL_COPY.errorTitle}>
+              {control.error}
+            </Notice>
+          </div>
+        ) : null}
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {empty ? (
+            <StatusMessage
+              title={SOURCE_CONTROL_COPY.cleanTitle}
+              description={SOURCE_CONTROL_COPY.cleanDescription}
+            />
+          ) : (
+            control.groups.map((group) => (
+              <ChangeGroup
+                key={group.id}
+                group={group}
+                selectedPath={selected?.path ?? null}
+                busy={control.busy}
+                handlers={control.rowHandlers}
+              >
+                {group.id === "staged" ? (
+                  <button
+                    type="button"
+                    disabled={control.busy}
+                    onClick={control.unstageAll}
+                    title={SOURCE_CONTROL_COPY.unstageAll}
+                    className={GROUP_ACTION_CLASSES}
+                  >
+                    <Minus size={14} strokeWidth={1.5} aria-hidden="true" />
+                    <span className="sr-only">
+                      {SOURCE_CONTROL_COPY.unstageAll}
+                    </span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={control.busy}
+                      onClick={control.discardAll}
+                      title={SOURCE_CONTROL_COPY.discardAll}
+                      className={GROUP_ACTION_CLASSES}
+                    >
+                      <Undo2 size={14} strokeWidth={1.5} aria-hidden="true" />
+                      <span className="sr-only">
+                        {SOURCE_CONTROL_COPY.discardAll}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={control.busy}
+                      onClick={control.stageAll}
+                      title={SOURCE_CONTROL_COPY.stageAll}
+                      className={GROUP_ACTION_CLASSES}
+                    >
+                      <Plus size={14} strokeWidth={1.5} aria-hidden="true" />
+                      <span className="sr-only">
+                        {SOURCE_CONTROL_COPY.stageAll}
+                      </span>
+                    </button>
+                  </>
+                )}
+              </ChangeGroup>
+            ))
+          )}
+        </div>
+
+        <DiscardConfirm
+          prompt={control.prompt}
+          onConfirm={control.confirmDiscard}
+          onCancel={control.cancelDiscard}
+        />
+      </div>
+    </Pane>
+  );
+}

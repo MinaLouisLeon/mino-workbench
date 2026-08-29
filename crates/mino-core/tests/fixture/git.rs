@@ -52,6 +52,10 @@ pub fn repository() -> tempfile::TempDir {
     // Commits must not be signed: a machine with `commit.gpgsign` on globally
     // would otherwise hang waiting for a passphrase.
     git(root, &["config", "commit.gpgsign", "false"]);
+    // And line endings must not be rewritten. Windows checkouts default to
+    // `core.autocrlf=true`, which would give a restored file CRLFs and make
+    // the discard tests compare bytes that differ only by platform.
+    git(root, &["config", "core.autocrlf", "false"]);
 
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::write(root.join("src/main.rs"), "fn main() {}\n").unwrap();

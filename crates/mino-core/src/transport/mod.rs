@@ -24,10 +24,14 @@ use async_trait::async_trait;
 
 use crate::error::Result;
 use crate::types::{
-    ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, GitRepository, GitStatus,
-    PtySessionId, PtySize, PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery,
-    ShellProbe, StructuredOutput, StructuredRequest, WriteRequest,
+    ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
+    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
+    StructuredRequest, WriteRequest,
 };
+
+mod git;
+
+pub use git::GitTransport;
 
 #[async_trait]
 pub trait Transport: Send + Sync + 'static {
@@ -94,36 +98,4 @@ pub trait Transport: Send + Sync + 'static {
     /// concept of one. Not an error, and not "this folder is not a
     /// repository" either - that question is [`GitTransport::repository`]'s.
     fn git(&self) -> Option<&dyn GitTransport>;
-}
-
-/// The git half of a session.
-///
-/// Two methods, and everything phase 1 renders is served by them: the tree's
-/// badges, the header's branch and dirty marker, and the search walk's ignore
-/// predicate all read one [`GitStatus`].
-///
-/// Every implementation shells out to the `git` binary with an argv array,
-/// because this app has two real targets and that is the only shape that
-/// serves both with one implementation - the remote host's own git answers
-/// over SSH with no extra machinery. See `plan/decisions.md` D1, and
-/// [`crate::git::command`] for the rule that no caller value ever reaches a
-/// command line.
-#[async_trait]
-pub trait GitTransport: Send + Sync + 'static {
-    /// The repository containing the connected root, or `None` when the root
-    /// is not inside one. Absence is not an error: most folders are not
-    /// repositories, and the UI renders that as a quiet state.
-    ///
-    /// Git being *absent from the target* is an error, and this is where the
-    /// UI learns it - one call, one sentence, and every git surface stays
-    /// quiet for the rest of the session.
-    async fn repository(&self) -> Result<Option<GitRepository>>;
-
-    /// The working tree as git sees it, for the whole repository.
-    ///
-    /// One call, not one per file: `git status --porcelain=v2 -z` answers for
-    /// the entire tree in a single pass, and the tree needs every row at once
-    /// to decorate itself. Rows for paths outside the connected root are
-    /// dropped before returning, even though git reported them.
-    async fn status(&self) -> Result<GitStatus>;
 }

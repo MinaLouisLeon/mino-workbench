@@ -10,7 +10,12 @@
  * Both are re-exported through `@/Types`, so nothing imports from here
  * directly.
  */
-import type { GitRepository, GitStatus } from "../generated";
+import type {
+  CommitRequest,
+  GitCommit,
+  GitRepository,
+  GitStatus,
+} from "../generated";
 
 /**
  * Tauri command names for the git surface. The only place these strings are
@@ -19,17 +24,26 @@ import type { GitRepository, GitStatus } from "../generated";
 export const GIT_COMMANDS = {
   repository: "git_repository",
   status: "git_status",
+  stage: "git_stage",
+  unstage: "git_unstage",
+  discard: "git_discard",
+  commit: "git_commit",
 } as const;
 
 export type GitCommand = (typeof GIT_COMMANDS)[keyof typeof GIT_COMMANDS];
+
+/** Argument payloads for the git commands that take any. */
+export type GitPathsArgs = { paths: string[] };
+export type GitCommitArgs = { request: CommitRequest };
 
 /**
  * Mirrors `mino_core::transport::GitTransport`, reached from the client the
  * way `Transport::git()` reaches it in Rust: `transport.git.status()`.
  *
- * Two methods, and everything phase 1 renders is served by them - the tree's
- * badges, the header's branch and dirty marker, and the search walk's ignore
- * predicate all read one `GitStatus`.
+ * Split the way the trait is: two methods that read the working tree, and four
+ * that change it. The reading half serves the tree's badges, the header's
+ * branch and dirty marker, and the search walk's ignore predicate, all from one
+ * `GitStatus`. The changing half is the source control panel.
  */
 export interface GitClient {
   /**
@@ -49,4 +63,34 @@ export interface GitClient {
    * callers ask `repository()` first.
    */
   status(): Promise<GitStatus>;
+
+  /**
+   * Stage paths. An empty array stages everything, which is what the
+   * group-level control sends.
+   *
+   * Paths are absolute - `GitEntry.path`, as it came back from `status()` -
+   * and Rust guards every one of them against the connected root before git
+   * sees it. A batch containing one path outside the root runs for none of
+   * them.
+   */
+  stage(paths: string[]): Promise<void>;
+
+  /** Remove paths from the index. Cannot lose work: the files are untouched. */
+  unstage(paths: string[]): Promise<void>;
+
+  /**
+   * Throw away working-tree changes.
+   *
+   * **The one call here that destroys data.** What it undoes exists nowhere
+   * else, so callers confirm first, name what will be lost, and never style it
+   * as the primary action - see `features/source-control`. It restores tracked
+   * files and does not delete untracked ones.
+   */
+  discard(paths: string[]): Promise<void>;
+
+  /**
+   * Commit what is staged, returning the commit so the UI can say it landed.
+   * Rejects when nothing is staged and when the message is empty.
+   */
+  commit(request: CommitRequest): Promise<GitCommit>;
 }

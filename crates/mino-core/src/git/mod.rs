@@ -10,7 +10,9 @@
 //! Two rules this module exists to hold:
 //!
 //! - **Argv only.** No caller value is interpolated into a git command line.
-//!   See [`command`], where every argument is fixed program text.
+//!   See [`command`]: paths travel as argv elements behind a `--` separator
+//!   and are guarded by [`guard`] first, and a commit message travels on stdin
+//!   rather than in argv at all.
 //! - **Absence is not an error.** A folder that is not inside a repository
 //!   answers `Ok(None)`, because most folders are not repositories and the UI
 //!   renders that as a quiet state, not a failure.
@@ -23,6 +25,8 @@
 
 pub mod branch;
 pub mod command;
+pub mod commit;
+pub mod guard;
 mod interpret;
 pub mod paths;
 pub mod porcelain;
@@ -48,7 +52,7 @@ impl GitOutput {
 
     /// The stderr line worth showing, or a fallback. Git is terse on failure
     /// and an empty notice helps nobody.
-    fn message(&self, what: &str) -> String {
+    pub(crate) fn message(&self, what: &str) -> String {
         let text = self.stderr.trim();
         if text.is_empty() {
             format!("git {what} failed")
@@ -72,6 +76,12 @@ pub fn missing() -> TransportError {
         "git is not installed, or is not on PATH, so this folder cannot be read as a \
          repository. Install git and reopen the folder.",
     )
+}
+
+/// What a failed call should say. Git's own words when it had any, and a
+/// sentence naming the operation when it did not.
+pub fn message_or(output: &GitOutput, what: &str) -> String {
+    output.message(what)
 }
 
 /// Raised by `status()` when the connected folder is not inside a repository.

@@ -1,7 +1,8 @@
-import { FolderTree, Search } from "lucide-react";
+import { FolderTree, GitBranch, Search } from "lucide-react";
 
 import { FileTreePane } from "@/features/file-tree/components/FileTreePane";
 import { SearchPane } from "@/features/search/components/SearchPane";
+import { SourceControlPane } from "@/features/source-control/components/SourceControlPane";
 
 import { SIDEBAR_COPY } from "./messages";
 import type { SidebarView, SidebarViewId } from "./types";
@@ -29,6 +30,12 @@ export const SIDEBAR_VIEWS: readonly SidebarView[] = [
     label: SIDEBAR_COPY.search,
     icon: Search,
     Panel: SearchPane,
+  },
+  {
+    id: "sourceControl",
+    label: SIDEBAR_COPY.sourceControl,
+    icon: GitBranch,
+    Panel: SourceControlPane,
   },
 ];
 

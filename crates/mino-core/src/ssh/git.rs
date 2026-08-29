@@ -10,13 +10,16 @@
 
 use async_trait::async_trait;
 
-use crate::error::Result;
-use crate::git::{self, command, paths::PathStyle};
+use crate::error::{Result, TransportError};
+use crate::git::{self, command, guard::guard_paths, paths::PathStyle};
 use crate::transport::GitTransport;
-use crate::types::{GitRepository, GitStatus};
+use crate::types::{CommitRequest, GitCommit, GitRepository, GitStatus};
 
-use super::git_run::run;
+use super::git_run::{run, run_with_input};
+use super::handler::ClientHandler;
 use super::SshTransport;
+
+use russh::client::Handle;
 
 #[async_trait]
 impl GitTransport for SshTransport {
@@ -40,6 +43,78 @@ impl GitTransport for SshTransport {
         let output = run(&connected.handle, &root, &command::status_argv()).await?;
         git::status_from(&output, repository_root, &root, PathStyle::posix())
     }
+
+    async fn stage(&self, paths: &[String]) -> Result<()> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let guarded = guard_paths(&root, paths, PathStyle::posix())?;
+        expect_success(
+            &connected.handle,
+            &root,
+            command::stage_argv(&guarded),
+            "stage",
+        )
+        .await
+    }
+
+    async fn unstage(&self, paths: &[String]) -> Result<()> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let guarded = guard_paths(&root, paths, PathStyle::posix())?;
+        expect_success(
+            &connected.handle,
+            &root,
+            command::unstage_argv(&guarded),
+            "unstage",
+        )
+        .await
+    }
+
+    async fn discard(&self, paths: &[String]) -> Result<()> {
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+        let guarded = guard_paths(&root, paths, PathStyle::posix())?;
+        expect_success(
+            &connected.handle,
+            &root,
+            command::discard_argv(&guarded),
+            "discard",
+        )
+        .await
+    }
+
+    async fn commit(&self, request: CommitRequest) -> Result<GitCommit> {
+        git::commit::validate(&request)?;
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
+
+        let output = run_with_input(
+            &connected.handle,
+            &root,
+            &command::commit_argv(&request),
+            Some(request.trimmed()),
+        )
+        .await?;
+        if !output.succeeded() {
+            return Err(git::commit::failure(&output));
+        }
+        let described = run(&connected.handle, &root, &command::head_commit_argv()).await?;
+        git::commit::parse(&described)
+    }
+}
+
+/// Runs a mutating call and turns a non-zero exit into git's own sentence.
+async fn expect_success(
+    handle: &Handle<ClientHandler>,
+    root: &str,
+    argv: Vec<String>,
+    what: &str,
+) -> Result<()> {
+    let output = run_with_input(handle, root, &argv, None).await?;
+    if output.succeeded() {
+        return Ok(());
+    }
+    Err(TransportError::shell(git::message_or(&output, what)))
 }
 
 async fn toplevel(

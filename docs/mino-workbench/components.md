@@ -29,6 +29,7 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | workbench | `Breadcrumb` | Segments from Nushell `path split`, degrading to a TS split |
 | file-tree | `FileTreePane` / `TreeRows` / `TreeRow` / `TreeRowParts` | Compound row, see the flow doc |
 | git | `GitBranchStatus` | Header strip: branch, dirty marker, ahead/behind. Takes no props - reads `GitStatusContext` |
+| source-control | `SourceControlPane` / `ChangeGroup` / `ChangeRow` / `ChangeRowParts` / `CommitBox` / `DiscardConfirm` | The third rail view. `DiscardConfirm` is an `alertdialog` whose confirm button names the consequence |
 | sidebar | `ActivityBar` / `ActivityBarButton` | The icon rail; one button per entry in `views.ts` |
 | sidebar | `SidebarPanel` | Renders every view, hiding the inactive ones rather than unmounting them |
 | search | `SearchPane` / `SearchField` / `SearchResults` | Presentational; wiring in `useFileSearch` |
@@ -39,9 +40,10 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 
 ## The compound rows
 
-Repeated list items are built as compound components. There are two: `TreeRow`
-in the file tree and `SearchRow` in the search results. Both follow the same
-shape, so this is the pattern to copy for a third:
+Repeated list items are built as compound components. There are three:
+`TreeRow` in the file tree, `SearchRow` in the search results and `ChangeRow`
+in source control. All three follow the same shape, which is now load-bearing
+rather than incidental:
 
 ```tsx
 <TreeRowProvider value={{ row, selected, onActivate, onExpandKey }}>

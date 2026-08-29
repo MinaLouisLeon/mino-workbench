@@ -5,14 +5,18 @@
 //! with no extra machinery - but `exec` hands a *string* to the remote login
 //! shell, so the argv array has to become a command line somewhere.
 //!
-//! It becomes one here, under two rules:
+//! It becomes one here, under three rules:
 //!
-//! - every argument comes from [`crate::git::command`] and is fixed program
-//!   text, so there is no caller value to inject with;
-//! - the working directory is the one caller-influenced value, and it goes
-//!   through [`super::command::quote`], which *refuses* a path containing a
-//!   single quote rather than escaping it. A remote path with a quote in it is
-//!   reported as a typed error, exactly as `run_structured` already does.
+//! - **Every argument is quoted**, not merely joined. Phase 2 passes paths, and
+//!   a path is a caller value.
+//! - Paths have already been through [`crate::git::guard`] against the session
+//!   root before they arrive, so quoting is the second line of defence and not
+//!   the first.
+//! - [`super::command::quote`] *refuses* a value containing a single quote
+//!   rather than escaping it, so a remote file whose name contains one is a
+//!   typed error rather than a mangled command. That is why the commit
+//!   message - the caller value most likely to contain an apostrophe - travels
+//!   on **stdin** and never through here at all.
 
 use russh::client::Handle;
 use russh::ChannelMsg;
@@ -28,10 +32,26 @@ use super::handler::ClientHandler;
 const TIMEOUT_MS: u64 = 20_000;
 
 pub async fn run(handle: &Handle<ClientHandler>, cwd: &str, argv: &[&str]) -> Result<GitOutput> {
+    let owned: Vec<String> = argv.iter().map(|arg| (*arg).to_string()).collect();
+    run_with_input(handle, cwd, &owned, None).await
+}
+
+/// The same, with `input` sent on the channel's stdin before EOF.
+///
+/// This is the whole reason a commit message is not an argument. The line
+/// below is parsed by the remote login shell, and `quote` refuses a value
+/// containing a single quote - which would refuse every commit message with an
+/// apostrophe in it. On stdin the message is bytes that nothing parses.
+pub async fn run_with_input(
+    handle: &Handle<ClientHandler>,
+    cwd: &str,
+    argv: &[String],
+    input: Option<&str>,
+) -> Result<GitOutput> {
     let line = command_line(cwd, argv)?;
     tokio::time::timeout(
         std::time::Duration::from_millis(TIMEOUT_MS),
-        exchange(handle, line),
+        exchange(handle, line, input.map(str::to_string)),
     )
     .await
     .map_err(|_| TransportError::Timeout {
@@ -40,26 +60,32 @@ pub async fn run(handle: &Handle<ClientHandler>, cwd: &str, argv: &[&str]) -> Re
     })?
 }
 
-/// `cd '<cwd>' && git <fixed args>`.
+/// `cd '<cwd>' && git '<arg>' '<arg>' …`.
 ///
-/// The arguments are not quoted because none of them can need it - they are
-/// the constants in `git::command`, all of them flags and subcommand names.
-/// The assertion below is what keeps that true if someone later adds one that
-/// is not.
-fn command_line(cwd: &str, argv: &[&str]) -> Result<String> {
-    if argv.iter().any(|arg| arg.contains([' ', '\'', '"', '$'])) {
-        return Err(TransportError::invalid(
-            "a git argument that needs quoting reached the remote command line",
-        ));
+/// Every argument is quoted, not just the working directory. Phase 1 could get
+/// away with joining them raw because all of them were flags and subcommand
+/// names; phase 2 passes **paths**, and a path with a space in it would
+/// otherwise arrive at the remote git as two arguments.
+///
+/// `quote` refuses rather than escapes a value containing a single quote, so a
+/// remote file whose name contains one is reported as a typed error instead of
+/// being silently mishandled. That is the documented limit of the SSH
+/// transport, and it is why the commit message - the one caller value likely
+/// to contain an apostrophe - travels on stdin instead.
+fn command_line(cwd: &str, argv: &[String]) -> Result<String> {
+    let mut line = format!("cd {} && {GIT_PROGRAM}", quote(cwd)?);
+    for arg in argv {
+        line.push(' ');
+        line.push_str(&quote(arg)?);
     }
-    Ok(format!(
-        "cd {} && {GIT_PROGRAM} {}",
-        quote(cwd)?,
-        argv.join(" ")
-    ))
+    Ok(line)
 }
 
-async fn exchange(handle: &Handle<ClientHandler>, line: String) -> Result<GitOutput> {
+async fn exchange(
+    handle: &Handle<ClientHandler>,
+    line: String,
+    input: Option<String>,
+) -> Result<GitOutput> {
     let mut channel = handle
         .channel_open_session()
         .await
@@ -68,6 +94,19 @@ async fn exchange(handle: &Handle<ClientHandler>, line: String) -> Result<GitOut
         .exec(true, line.as_bytes())
         .await
         .map_err(|e| TransportError::shell(format!("could not start git: {e}")))?;
+
+    if let Some(text) = input {
+        channel
+            .data(text.as_bytes())
+            .await
+            .map_err(|e| TransportError::shell(format!("could not send the git input: {e}")))?;
+    }
+    // Always, input or not. Without EOF a `git commit --file -` waits on
+    // stdin forever and the call times out instead of committing.
+    channel
+        .eof()
+        .await
+        .map_err(|e| TransportError::shell(format!("could not close the git input: {e}")))?;
 
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -95,24 +134,4 @@ async fn exchange(handle: &Handle<ClientHandler>, line: String) -> Result<GitOut
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::git::command;
-
-    #[test]
-    fn the_working_directory_is_the_only_quoted_value() {
-        let line = command_line("/srv/app", &command::status_argv()).unwrap();
-        assert!(line.starts_with("cd '/srv/app' && git "));
-        assert!(line.contains("--porcelain=v2"));
-    }
-
-    #[test]
-    fn a_quote_in_the_remote_path_is_refused_not_escaped() {
-        assert!(command_line("/srv/it's", &command::status_argv()).is_err());
-    }
-
-    #[test]
-    fn an_argument_needing_quoting_is_refused_before_it_is_sent() {
-        assert!(command_line("/srv/app", &["status", "; rm -rf /"]).is_err());
-    }
-}
+mod tests;

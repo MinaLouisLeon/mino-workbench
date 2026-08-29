@@ -1,5 +1,6 @@
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
 import { SidebarProvider } from "@/features/sidebar/context/SidebarContext";
+import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
 
 import { WorkbenchPanes } from "./WorkbenchPanes";
 
@@ -14,13 +15,19 @@ import { WorkbenchPanes } from "./WorkbenchPanes";
  *
  * Git wraps the sidebar because both the header and the tree read it: one
  * `git status` for the whole window, not one per pane.
+ *
+ * Drafts are here for the same reason: the editor writes them and the source
+ * control panel clears them when it discards a file, so neither can own the
+ * store outright.
  */
 export function Workbench() {
   return (
-    <GitStatusProvider>
-      <SidebarProvider>
-        <WorkbenchPanes />
-      </SidebarProvider>
-    </GitStatusProvider>
+    <DraftsProvider>
+      <GitStatusProvider>
+        <SidebarProvider>
+          <WorkbenchPanes />
+        </SidebarProvider>
+      </GitStatusProvider>
+    </DraftsProvider>
   );
 }

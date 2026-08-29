@@ -28,6 +28,25 @@ macro_rules! unimplemented_git_transport {
             async fn status(&self) -> $crate::Result<$crate::types::GitStatus> {
                 Err($crate::TransportError::unimplemented($kind, "git_status"))
             }
+
+            async fn stage(&self, _paths: &[String]) -> $crate::Result<()> {
+                Err($crate::TransportError::unimplemented($kind, "git_stage"))
+            }
+
+            async fn unstage(&self, _paths: &[String]) -> $crate::Result<()> {
+                Err($crate::TransportError::unimplemented($kind, "git_unstage"))
+            }
+
+            async fn discard(&self, _paths: &[String]) -> $crate::Result<()> {
+                Err($crate::TransportError::unimplemented($kind, "git_discard"))
+            }
+
+            async fn commit(
+                &self,
+                _request: $crate::types::CommitRequest,
+            ) -> $crate::Result<$crate::types::GitCommit> {
+                Err($crate::TransportError::unimplemented($kind, "git_commit"))
+            }
         }
     };
 }

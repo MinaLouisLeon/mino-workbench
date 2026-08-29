@@ -18,7 +18,7 @@
 | [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors |
 | [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
-| [git-module.md](git-module.md) | The git surface: one status call, tree badges, the header strip, `.gitignore` in search |
+| [git-module.md](git-module.md) | The git surface: status, tree badges, the header strip, `.gitignore` in search, and staging, discard and commit |
 | [components.md](components.md) | Shared presentational components and the compound tree row |
 | [state-store.md](state-store.md) | Contexts, hooks, what is persisted and what must never be |
 | [manual-testing.md](manual-testing.md) | The QA guide: every scenario, per OS |
@@ -38,6 +38,13 @@ Folder opened → git_repository → in a repo? → git_status → badges + head
                               ↘ no  → nothing at all (not an error)
                               ↘ git missing → one sentence, then quiet
 File saved / window focused → debounced git_status → badges refresh
+
+Rail (branch icon) → source control → staged / changed groups
+Row + / −          → git_stage / git_unstage(one path) → git_status
+Group + / −        → git_stage / git_unstage([])       → git_status
+Row discard        → confirm naming the file → git_discard → git_status
+                   ↘ cancelled → nothing is called at all
+Message + Commit   → git_commit (message on stdin) → git_log → "Committed <sha>"
 
 Rail icon → active view switches (or collapses, if already showing)
 Search typed → debounce → search_files(query) → walk + fuzzy rank → SearchHits

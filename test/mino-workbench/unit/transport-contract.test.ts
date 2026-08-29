@@ -29,7 +29,28 @@ const METHODS: TransportMethod[] = [
 ];
 
 /** And every method on the second trait, `mino_core::GitTransport`. */
-const GIT_METHODS: GitMethod[] = ["repository", "status"];
+const GIT_METHODS: GitMethod[] = [
+  "repository",
+  "status",
+  "stage",
+  "unstage",
+  "discard",
+  "commit",
+];
+
+/** One call each, with an argument where the method takes one. */
+function callGit(git: GitClient, method: GitMethod): Promise<unknown> {
+  switch (method) {
+    case "repository":
+      return git.repository();
+    case "status":
+      return git.status();
+    case "commit":
+      return git.commit({ message: "m", all: false, amend: false });
+    default:
+      return git[method](["/root/a.txt"]);
+  }
+}
 
 describe("transport client contract", () => {
   it("the fake implements every method the panes may call", () => {
@@ -79,7 +100,7 @@ describe("agent transport", () => {
   // `null`. "No agent protocol yet" and "not a repository" are different
   // facts, and answering the first with the second would hide it.
   it.each(GIT_METHODS)("rejects git.%s with a typed unimplemented error", async (method) => {
-    await expect(agent.git[method]()).rejects.toEqual({
+    await expect(callGit(agent.git, method)).rejects.toEqual({
       kind: "unimplemented",
       detail: { feature: GIT_COMMANDS[method], transport: "remoteAgent" },
     } satisfies TransportError);

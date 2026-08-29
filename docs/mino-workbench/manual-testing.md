@@ -267,3 +267,44 @@ no badges, no header strip, no error.
 | TC-158 | Repository open | Run `git commit` in the terminal pane while the workbench is idle | It succeeds: no index lock is held against it | none | High |
 | TC-159 | A repository with thousands of changes | Open it | The tree still responds; the list says it is partial rather than implying the rest is clean | `git_status` with `truncated` | Medium |
 | TC-160 | Repository open | Tab to a tree row with a badge with a screen reader on | The state is read as a word ("Modified"), not as the letter | none | High |
+
+## 16. Source control
+
+The panel that stages and commits. **TC-176 to TC-180 are data-loss cases** -
+run them the way the editor's data-loss cases are run, and check the file on
+disk afterwards rather than trusting the UI.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-161 | A repository with changes | Click the branch icon in the rail | The source control view opens; Files is no longer lit | none | High |
+| TC-162 | A plain folder, not a repository | Open the source control view | "Not a repository", no controls, no error | `git_repository` | High |
+| TC-163 | A clean repository | Open the source control view | "Nothing to commit", and no groups | `git_status` | High |
+| TC-164 | An edited file and a new file | Look at the panel | Both under Changes, with the count `2`; the letters match the file tree's | `git_status` | High |
+| TC-165 | `git add` one of them in the terminal, then refocus | Look at the panel | It moves to Staged changes, and the counts follow | `git_status` | High |
+| TC-166 | Stage a file, then edit it again | Look at the panel | It appears in **both** groups - that is correct, not a duplicate | `git_status` | High |
+| TC-167 | An edited file | Click its `+` | Only that file stages. Confirm with `git status` in the terminal | `git_stage` with one path | High |
+| TC-168 | A staged file | Click its `−` | Only that file unstages; the file on disk is unchanged | `git_unstage` | High |
+| TC-169 | Several changes | Click `Stage all` on the Changes header | Everything stages, untracked files included | `git_stage` with `[]` | High |
+| TC-170 | Several staged | Click `Unstage all` | Everything unstages | `git_unstage` with `[]` | Medium |
+| TC-171 | Anything staged | Type a message, click Commit | It commits; the box clears and names the new commit. Confirm with `git log` | `git_commit` | High |
+| TC-172 | Anything staged | Type a message, press Ctrl+Enter | Same as TC-171 | `git_commit` | Medium |
+| TC-173 | Nothing typed | Look at Commit | Disabled, and it says "Write a commit message first" | none | High |
+| TC-174 | A message typed, nothing staged | Look at Commit | Disabled, and it says "Stage something to commit" | none | High |
+| TC-175 | **data loss** - a repository with `user.email` unset (`git config --unset user.email`) | Type a long message and commit | It fails with a sentence naming `user.email`, **and the message is still in the box** | `git_commit` failing | High |
+| TC-176 | **data loss** - an edited file | Click its discard arrow | A confirmation naming the file. Nothing has happened yet | none | High |
+| TC-177 | **data loss** - that confirmation open | Click "Keep my changes" | It closes and the file is untouched. Confirm the edit is still on disk | none | High |
+| TC-178 | **data loss** - that confirmation open | Read the confirm button | It says "Discard <file>", not "OK"; "Keep my changes" is the focused button | none | High |
+| TC-179 | **data loss** - an edited file | Discard it and confirm | The file returns to its committed content, **and no other file changes**. Check `git status` | `git_discard` with one path | High |
+| TC-180 | **data loss** - unsaved edits open in the viewer for that file | Discard it in the panel, then press Ctrl+S in the viewer | The stale draft is gone; saving cannot write back text that was discarded | `git_discard` | High |
+| TC-181 | Several edited files plus one untracked | Click `Discard all` | The confirmation counts only the **tracked** ones; the untracked file survives | `git_discard` | High |
+| TC-182 | An untracked file | Look at its row | No discard control. Hovering explains there is nothing to restore it from | none | High |
+| TC-183 | Any change | Click a row's path | The file opens in the viewer, exactly as a tree row would | `read_file` | High |
+| TC-184 | A deleted file (`rm` a tracked file) | Look at the panel and click the row | It appears with `D`; opening it says the file is gone rather than doing nothing | `git_status` | Medium |
+| TC-185 | A file with a space and one with an accent in the name | Stage, commit and discard each | All three work on the right file | `git_stage`, `git_commit`, `git_discard` | Medium |
+| TC-186 | Any action | Watch the list after it completes | It refreshes once, on completion - not on a timer, and not mid-click | one `git_status` per action | Medium |
+| TC-187 | A repository with an in-progress `index.lock` | Try to stage | It fails with git's own sentence, and the list still shows | `git_stage` failing | Medium |
+| TC-188 | **security** - SSH session on a remote repository | Stage, commit and discard | All three run on the remote host; confirm with `git log` there | over SSH | High |
+| TC-189 | **security** - SSH session, a file whose name contains a single quote | Try to stage it | Refused with a clear sentence, not a mangled command | `git_stage` refusing | High |
+| TC-190 | A commit message containing an apostrophe, over SSH | Commit it | It commits with the apostrophe intact - the message goes on stdin, not the command line | `git_commit` over SSH | High |
+| TC-191 | A fresh `git init`, one file staged | Unstage it | It unstages. (`git restore --staged` would fail here; the app uses `git reset`) | `git_unstage` | Medium |
+| TC-192 | Source control open | Tab through the panel with a screen reader | Every control has a spoken name; the state letter is read as a word | none | High |

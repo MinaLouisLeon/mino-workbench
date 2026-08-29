@@ -8,6 +8,7 @@ export const SIDEBAR_COPY = {
   railLabel: "Views",
   files: "Files",
   search: "Search",
+  sourceControl: "Source control",
 
   /** Tooltip suffix on the active view's button, which toggles the panel. */
   hidePanel: "Hide",

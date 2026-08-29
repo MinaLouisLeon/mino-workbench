@@ -1,4 +1,12 @@
-import type { GitClient, GitRepository, GitStatus } from "@/Types";
+import type {
+  CommitRequest,
+  GitClient,
+  GitCommit,
+  GitCommitArgs,
+  GitPathsArgs,
+  GitRepository,
+  GitStatus,
+} from "@/Types";
 import { GIT_COMMANDS } from "@/Types";
 
 import { invokeTransport } from "./invoke";
@@ -6,9 +14,13 @@ import { invokeTransport } from "./invoke";
 /**
  * The desktop git surface: one method per Tauri command, no logic of its own.
  *
- * A separate class rather than two more methods on `TauriTransport`, mirroring
+ * A separate class rather than six more methods on `TauriTransport`, mirroring
  * the Rust split - `Transport::git()` returns a second trait, and this is what
  * that looks like on the other side of the IPC boundary.
+ *
+ * Note what is *not* here: no confirmation, no path checking, no ordering.
+ * Confirming a discard is the panel's job and guarding a path is Rust's, and
+ * putting either here would be a second place to keep them right.
  */
 export class TauriGitClient implements GitClient {
   repository(): Promise<GitRepository | null> {
@@ -17,5 +29,27 @@ export class TauriGitClient implements GitClient {
 
   status(): Promise<GitStatus> {
     return invokeTransport(GIT_COMMANDS.status);
+  }
+
+  stage(paths: string[]): Promise<void> {
+    return invokeTransport(GIT_COMMANDS.stage, { paths } satisfies GitPathsArgs);
+  }
+
+  unstage(paths: string[]): Promise<void> {
+    return invokeTransport(GIT_COMMANDS.unstage, {
+      paths,
+    } satisfies GitPathsArgs);
+  }
+
+  discard(paths: string[]): Promise<void> {
+    return invokeTransport(GIT_COMMANDS.discard, {
+      paths,
+    } satisfies GitPathsArgs);
+  }
+
+  commit(request: CommitRequest): Promise<GitCommit> {
+    return invokeTransport(GIT_COMMANDS.commit, {
+      request,
+    } satisfies GitCommitArgs);
   }
 }

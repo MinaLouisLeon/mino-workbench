@@ -34,7 +34,7 @@ test/
 
 | Module | Folder | Covers |
 | --- | --- | --- |
-| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade |
+| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation |
 
 ## The transport is the test seam
 

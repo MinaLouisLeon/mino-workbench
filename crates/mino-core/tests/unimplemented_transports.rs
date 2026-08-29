@@ -93,6 +93,23 @@ async fn assert_every_method_unimplemented(
         .expect("an unbuilt git surface is still a surface");
     assert!(is_unimplemented(git.repository().await.unwrap_err(), kind));
     assert!(is_unimplemented(git.status().await.unwrap_err(), kind));
+
+    let paths = ["/srv/app/x".to_string()];
+    assert!(is_unimplemented(git.stage(&paths).await.unwrap_err(), kind));
+    assert!(is_unimplemented(
+        git.unstage(&paths).await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.discard(&paths).await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
+        git.commit(mino_core::types::CommitRequest::new("m"))
+            .await
+            .unwrap_err(),
+        kind
+    ));
 }
 
 #[tokio::test]

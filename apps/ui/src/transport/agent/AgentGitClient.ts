@@ -1,9 +1,12 @@
 import type {
+  CommitRequest,
   GitClient,
+  GitCommit,
   GitRepository,
   GitStatus,
   TransportError,
 } from "@/Types";
+import { GIT_COMMANDS } from "@/Types";
 
 /**
  * The browser git surface: declared, not built.
@@ -25,10 +28,26 @@ export class AgentGitClient implements GitClient {
   }
 
   repository(): Promise<GitRepository | null> {
-    return this.reject("git_repository");
+    return this.reject(GIT_COMMANDS.repository);
   }
 
   status(): Promise<GitStatus> {
-    return this.reject("git_status");
+    return this.reject(GIT_COMMANDS.status);
+  }
+
+  stage(_paths: string[]): Promise<void> {
+    return this.reject(GIT_COMMANDS.stage);
+  }
+
+  unstage(_paths: string[]): Promise<void> {
+    return this.reject(GIT_COMMANDS.unstage);
+  }
+
+  discard(_paths: string[]): Promise<void> {
+    return this.reject(GIT_COMMANDS.discard);
+  }
+
+  commit(_request: CommitRequest): Promise<GitCommit> {
+    return this.reject(GIT_COMMANDS.commit);
   }
 }

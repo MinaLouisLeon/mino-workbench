@@ -12,11 +12,11 @@
 use async_trait::async_trait;
 
 use crate::error::Result;
-use crate::git::{self, command, paths::PathStyle};
+use crate::git::{self, command, guard::guard_paths, paths::PathStyle};
 use crate::transport::GitTransport;
-use crate::types::{GitRepository, GitStatus};
+use crate::types::{CommitRequest, GitCommit, GitRepository, GitStatus};
 
-use super::git_run::run;
+use super::git_run::{run, run_with_input};
 use super::LocalTransport;
 
 #[async_trait]
@@ -42,6 +42,64 @@ impl GitTransport for LocalTransport {
         let output = run(&root, &command::status_argv()).await?;
         git::status_from(&output, repository_root, &root, PathStyle::local())
     }
+
+    async fn stage(&self, paths: &[String]) -> Result<()> {
+        let (root, guarded) = self.guarded(paths)?;
+        expect_success(&root, command::stage_argv(&guarded), "stage").await
+    }
+
+    async fn unstage(&self, paths: &[String]) -> Result<()> {
+        let (root, guarded) = self.guarded(paths)?;
+        expect_success(&root, command::unstage_argv(&guarded), "unstage").await
+    }
+
+    async fn discard(&self, paths: &[String]) -> Result<()> {
+        let (root, guarded) = self.guarded(paths)?;
+        expect_success(&root, command::discard_argv(&guarded), "discard").await
+    }
+
+    async fn commit(&self, request: CommitRequest) -> Result<GitCommit> {
+        git::commit::validate(&request)?;
+        let root = self.guard()?.root_display();
+
+        let output = run_with_input(
+            &root,
+            &command::commit_argv(&request),
+            Some(request.trimmed()),
+        )
+        .await?;
+        if !output.succeeded() {
+            return Err(git::commit::failure(&output));
+        }
+        // Asked separately rather than scraped out of `git commit`'s own
+        // human-readable output, which changes between versions.
+        git::commit::parse(&run(&root, &command::head_commit_argv()).await?)
+    }
+}
+
+impl LocalTransport {
+    /// The session root, and the caller's paths made safe to hand to git.
+    ///
+    /// One place, so no mutating method can forget it - `discard` in
+    /// particular must never be reachable with an unguarded path.
+    fn guarded(&self, paths: &[String]) -> Result<(String, Vec<String>)> {
+        let root = self.guard()?.root_display();
+        let guarded = guard_paths(&root, paths, PathStyle::local())?;
+        Ok((root, guarded))
+    }
+}
+
+/// Runs a mutating call and turns a non-zero exit into git's own sentence.
+async fn expect_success(root: &str, argv: Vec<String>, what: &str) -> Result<()> {
+    let output = run_with_input(root, &argv, None).await?;
+    if output.succeeded() {
+        return Ok(());
+    }
+    // Never reported as a partial success: the batch either ran or it did not,
+    // and saying otherwise would leave the UI unable to describe the index.
+    Err(crate::error::TransportError::shell(git::message_or(
+        &output, what,
+    )))
 }
 
 /// The work tree root containing `root`, or `None` when there is not one.

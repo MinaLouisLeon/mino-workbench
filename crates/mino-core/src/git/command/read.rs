@@ -1,30 +1,11 @@
-//! The argv every git call is made from.
+//! Argv for the calls that only *read*.
 //!
-//! SECURITY: nothing in this file builds a shell string, and no caller value
-//! is ever spliced into one. Each function returns a fixed array of program
-//! text; the only caller-influenced value in a git call is the working
-//! directory, which the local transport passes to `Command::current_dir` and
-//! the SSH transport single-quotes through `ssh::command::quote` - which
-//! refuses a value it cannot quote safely rather than escaping it.
-//!
-//! This is the same rule `StructuredRequest` follows for Nushell: pipeline
-//! text is fixed, caller values are bound as parameters. Here there are no
-//! caller values at all.
+//! Nothing here takes a caller value at all, which is the strongest form the
+//! injection rule takes: there is no path, no branch name and no message for
+//! anything to be spliced into. The mutating half is in [`super::write`],
+//! where paths do appear and are guarded before they arrive.
 
-pub const GIT_PROGRAM: &str = "git";
-
-/// Wall-clock ceiling for one git call. Long enough for a cold status on a
-/// large repository, short enough that a wedged git never becomes a hang.
-pub const DEFAULT_TIMEOUT_MS: u64 = 15_000;
-
-/// Options that go *before* the subcommand, so they are git's and not the
-/// subcommand's.
-///
-/// `--no-optional-locks` keeps a status from refreshing the index on disk.
-/// Status runs whenever a file is saved or the window regains focus, and a
-/// background process taking the index lock is how a workbench ends up
-/// fighting a terminal the user is typing `git commit` into.
-const GLOBAL: &[&str] = &["--no-optional-locks"];
+use super::GLOBAL;
 
 /// `git rev-parse --show-toplevel`: the work tree root, or exit 128 when the
 /// directory is not inside a repository. That failure is the *answer* to
@@ -104,6 +85,17 @@ pub fn ignored_argv() -> Vec<&'static str> {
     argv
 }
 
+/// The commit at HEAD, in one NUL-separated line.
+///
+/// Run straight after a successful `commit`, rather than scraping the sha out
+/// of git's own commit output: that output is human text that changes between
+/// versions, and `--format` is a documented interface.
+pub fn head_commit_argv() -> Vec<&'static str> {
+    let mut argv = GLOBAL.to_vec();
+    argv.extend_from_slice(&["log", "-1", "-z", "--format=%H%x00%h%x00%s%x00%an%x00%at"]);
+    argv
+}
+
 /// `git --version`, the probe. Cheap, and it answers the only question worth
 /// asking up front: is there a usable git here at all.
 pub fn version_argv() -> Vec<&'static str> {
@@ -123,19 +115,19 @@ mod tests {
     }
 
     #[test]
-    fn every_argument_is_fixed_program_text() {
-        // The point of the file: no function here takes a caller value, so
-        // there is nothing for a path or a branch name to be spliced into.
+    fn no_function_here_takes_a_caller_value() {
+        // The point of the file, asserted by its own signatures: every one of
+        // these is callable with no arguments, so there is nothing for a path
+        // or a branch name to be spliced into.
         for argv in [
             repository_argv(),
             status_argv(),
             branch_argv(),
             ignored_argv(),
+            head_commit_argv(),
             version_argv(),
         ] {
-            assert!(argv
-                .iter()
-                .all(|arg| arg.starts_with('-') || arg.is_ascii()));
+            assert!(!argv.is_empty());
         }
     }
 }

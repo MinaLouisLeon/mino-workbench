@@ -36,8 +36,12 @@ nothing to do with cohesion - see `plan/decisions.md` D2.
 
 | Function (file) | Method · Endpoint | Params / Body | Returns |
 | --- | --- | --- | --- |
-| `repository` (`transport.rs`) | Tauri `git_repository` · agent *(not yet)* | – | `GitRepository \| null` |
-| `status` (`transport.rs`) | Tauri `git_status` · agent *(not yet)* | – | `GitStatus` |
+| `repository` (`transport/git.rs`) | Tauri `git_repository` · agent *(not yet)* | – | `GitRepository \| null` |
+| `status` (`transport/git.rs`) | Tauri `git_status` · agent *(not yet)* | – | `GitStatus` |
+| `stage` (`transport/git.rs`) | Tauri `git_stage` · agent *(not yet)* | `paths: string[]` | `void` |
+| `unstage` (`transport/git.rs`) | Tauri `git_unstage` · agent *(not yet)* | `paths: string[]` | `void` |
+| `discard` (`transport/git.rs`) | Tauri `git_discard` · agent *(not yet)* | `paths: string[]` | `void` |
+| `commit` (`transport/git.rs`) | Tauri `git_commit` · agent *(not yet)* | `request: CommitRequest` | `GitCommit` |
 
 `repository` returning `null` is an **answer**, not a failure: most folders are
 not repositories, and the UI renders that as a quiet state. Git being absent
@@ -46,6 +50,12 @@ can go quiet for the session rather than failing per call.
 
 `status` rejects with `invalidArgument` when the folder is not a repository, so
 a caller that skipped `repository` is told rather than handed an empty status.
+
+On the four mutating methods an **empty `paths` array means everything** - it
+is what the group-level controls send - and every path is guarded against the
+connected root before git is spawned. `discard` is the only call on this
+interface that destroys data; see the discard rule in
+[git-module.md](git-module.md).
 
 ### The one deviation
 
@@ -101,6 +111,9 @@ GitEntry         = { path: string, relativePath: string,
                      originalPath: string | null }
 GitStatus        = { repository: GitRepository, entries: GitEntry[],
                      truncated: boolean }
+CommitRequest    = { message: string, all: boolean, amend: boolean }
+GitCommit        = { sha: string, shortSha: string, summary: string,
+                     author: string, timestampMs: number }
 ```
 
 `GitEntry` carries **two** states because staged-and-then-modified-again is a
@@ -126,6 +139,10 @@ root.
 | `GitStatus.entries` | Rows outside the connected root are dropped before returning | – |
 | `GitStatus.entries` | Capped at 10 000 (`MAX_STATUS_ENTRIES`) | `truncated: true` |
 | `git_status` outside a repository | Refused rather than answered with an empty status | `invalidArgument` |
+| every git path argument | `..`/`.` segments refused; must sit inside the connected root; the root itself is not a path | `pathEscapesRoot` / `invalidArgument` |
+| a batch of git paths | All-or-nothing: one refused path runs none of them | `pathEscapesRoot` |
+| `CommitRequest.message` | Non-empty after trimming, at most 64 KiB. Sent on stdin, never in argv | `invalidArgument` |
+| `git_commit` with nothing staged | Refused rather than a silent no-op | `invalidArgument` |
 
 ### Error shape
 

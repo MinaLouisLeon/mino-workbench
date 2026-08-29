@@ -7,7 +7,7 @@
 //! repository" - and the two must not be collapsed, because only one of them
 //! is a normal thing for a folder to be.
 
-use mino_core::types::{GitRepository, GitStatus};
+use mino_core::types::{CommitRequest, GitCommit, GitRepository, GitStatus};
 use mino_core::{Transport, TransportError};
 use std::sync::Arc;
 use tauri::State;
@@ -26,6 +26,46 @@ pub async fn git_repository(
 pub async fn git_status(state: State<'_, AppState>) -> Result<GitStatus, TransportError> {
     let transport = state.current()?;
     git(&transport)?.status().await
+}
+
+#[tauri::command]
+pub async fn git_stage(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<(), TransportError> {
+    let transport = state.current()?;
+    git(&transport)?.stage(&paths).await
+}
+
+#[tauri::command]
+pub async fn git_unstage(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<(), TransportError> {
+    let transport = state.current()?;
+    git(&transport)?.unstage(&paths).await
+}
+
+/// The destructive one. The confirmation is the UI's job - by the time a call
+/// reaches here the user has already been asked - and the path guard in
+/// `mino_core::git::guard` is what makes sure it can only reach files the
+/// session owns.
+#[tauri::command]
+pub async fn git_discard(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<(), TransportError> {
+    let transport = state.current()?;
+    git(&transport)?.discard(&paths).await
+}
+
+#[tauri::command]
+pub async fn git_commit(
+    state: State<'_, AppState>,
+    request: CommitRequest,
+) -> Result<GitCommit, TransportError> {
+    let transport = state.current()?;
+    git(&transport)?.commit(request).await
 }
 
 /// The git surface of the current transport, or the typed error saying this
