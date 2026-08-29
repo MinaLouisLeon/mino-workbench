@@ -1,0 +1,47 @@
+# Git hooks.
+#
+# One hook, one purpose: `pre-push` runs exactly what the `verify` job in
+# .github/workflows/release-windows.yml runs, so a branch that pushes clean
+# cannot turn the release workflow red on something a local check would have
+# caught. The two lists are meant to stay identical - change one, change the
+# other.
+#
+# Install (npm does this for you via the `prepare` script):
+#
+#   npx lefthook install
+#
+# `piped: true` runs the jobs in order and stops at the first failure, so the
+# cheap checks fail fast and nobody waits on Clippy to be told about a typo.
+# The order is deliberate: type errors and lint are the fastest and the most
+# likely, the Rust suite is the slowest.
+#
+# Takes about a minute on a warm cache. If you genuinely need to push past it -
+# a work-in-progress branch nobody builds, say - `git push --no-verify` skips
+# it, and `LEFTHOOK=0 git push` skips every hook.
+
+pre-push:
+  piped: true
+  jobs:
+    - name: type-check
+      run: npx tsc --noEmit
+
+    - name: lint
+      run: npx eslint . --max-warnings 0
+
+    - name: tests
+      run: npx vitest run
+
+    # Needs the browser: `npx playwright install chromium` once, per machine.
+    - name: e2e
+      run: npx playwright test
+
+    - name: rust-format
+      run: cargo fmt --all --check
+
+    - name: clippy
+      run: cargo clippy --workspace --all-targets -- -D warnings
+
+    # `mino-desktop` is excluded for the same reason it is in CI: it declares
+    # no tests, so building its harness only costs time.
+    - name: rust-tests
+      run: cargo test --workspace --exclude mino-desktop

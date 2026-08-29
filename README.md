@@ -62,6 +62,24 @@ too but has three sharp edges — see
 | `npm test` | Vitest |
 | `npm run test:e2e` | Playwright |
 | `npm run gen:types` | Regenerate the TypeScript domain types from Rust |
+| `npm run typecheck` | `tsc --noEmit` over the whole repo, tests included |
+| `npm run lint` | ESLint, warnings treated as errors |
+
+### Before you push
+
+`npm install` installs a `pre-push` hook (lefthook) that runs exactly what the
+release workflow's `verify` job runs: type-check, lint, Vitest, Playwright,
+`cargo fmt --check`, Clippy and the Rust tests. It stops at the first failure
+and takes about a minute on a warm cache, so a branch that pushes clean does
+not turn the release red on something a local check would have caught.
+
+The hook lives in [`lefthook.yml`](lefthook.yml). `git push --no-verify` skips
+it for a work-in-progress branch; `LEFTHOOK=0 git push` skips every hook.
+
+One thing worth knowing: the type-check that matters is the root one. Each
+workspace has its own narrower `tsconfig.json` - `apps/ui`'s does not cover
+`test/` - so `npm run typecheck` at the root is the only one that sees
+everything CI sees.
 
 ## Documentation
 
