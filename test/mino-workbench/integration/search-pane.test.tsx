@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { FilePayload } from "@/Types";
 import { SearchPane } from "@/features/search/components/SearchPane";
 import { ViewerPane } from "@/features/viewer/components/ViewerPane";
 
@@ -18,6 +19,15 @@ import { field, searchTransport, SEARCHABLE } from "../search-harness";
  * happens when a search fails or arrives late is in
  * `search-pane-failures.test.tsx`.
  */
+const MAIN_RS: FilePayload = {
+  path: "/root/src/main.rs",
+  size: 12,
+  modifiedMs: 1_700_000_000_000,
+  encoding: "utf8",
+  content: "fn main() {}",
+  extension: "rs",
+};
+
 describe("search pane", () => {
   it("asks for nothing until something is typed", async () => {
     const { client } = searchTransport();
@@ -68,16 +78,7 @@ describe("search pane", () => {
     const user = userEvent.setup();
     const { client } = createFakeTransport({
       searchable: SEARCHABLE,
-      files: {
-        "/root/src/main.rs": {
-          path: "/root/src/main.rs",
-          content: "fn main() {}",
-          encoding: "utf8",
-          size: 12,
-          modifiedMs: 1,
-          truncated: false,
-        },
-      },
+      files: { "/root/src/main.rs": MAIN_RS },
     });
     renderConnected(
       <>
@@ -90,7 +91,13 @@ describe("search pane", () => {
     await user.type(await field(), "main");
     await user.click(await screen.findByRole("option", { name: /main\.rs/ }));
 
-    expect(await screen.findByText("fn main() {}")).toBeInTheDocument();
+    // The editor's label rather than its text: CodeMirror splits highlighted
+    // source across spans, so matching the content as one string would break
+    // on nothing more than a language mode being applied.
+    expect(
+      await screen.findByLabelText("Contents of main.rs"),
+    ).toBeInTheDocument();
+    expect(client.readFile).toHaveBeenCalledWith("/root/src/main.rs");
   });
 
   it("clears back to the prompt", async () => {
