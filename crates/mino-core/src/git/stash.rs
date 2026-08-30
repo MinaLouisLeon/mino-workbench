@@ -16,11 +16,22 @@
 //! The **index** is read from `%gd` rather than counted from the row's
 //! position. They agree today; they are still two different facts, and the one
 //! a later `drop` will be given is the selector git printed.
+//!
+//! And one thing this module exists to catch: **`git stash push` exits zero
+//! when it stashed nothing.** A clean tree gets `No local changes to save` on
+//! *stdout* and exit 0, so a transport that trusted the exit code would report
+//! that work had been set aside when the tree was never touched - and the
+//! reader would go looking for it on a stack that has no such entry. See
+//! [`outcome::pushed`].
 
 use crate::error::{Result, TransportError};
 use crate::types::GitStash;
 
 use super::GitOutput;
+
+mod outcome;
+
+pub use outcome::{failure, pushed};
 
 const UNIT: char = '\u{1f}';
 const FIELDS: usize = 3;
@@ -92,39 +103,6 @@ fn subject(text: &str) -> (Option<String>, String) {
     // the most useful thing to show, so it becomes the message rather than
     // the row becoming blank.
     (None, text.trim().to_string())
-}
-
-/// Turns a failed stash call into the sentence worth showing.
-///
-/// The conflict case is the one that matters: `pop` leaves the entry on the
-/// stack when it conflicts, so the reader has to be told the work is still
-/// there. Full conflict resolution is phase 6; saying where things stand is
-/// this phase's job.
-pub fn failure(output: &GitOutput, what: &str) -> TransportError {
-    let combined = format!("{} {}", output.stdout, output.stderr).to_lowercase();
-
-    if combined.contains("conflict") || combined.contains("could not restore untracked files") {
-        return TransportError::invalid(
-            "the stash could not be applied cleanly - it conflicts with the working \
-             tree. The entry is still on the stack, and the conflicting files are \
-             marked in the working tree.",
-        );
-    }
-    if combined.contains("is not a valid reference")
-        || combined.contains("is not a stash")
-        || combined.contains("no stash entries found")
-        || combined.contains("log for 'refs/stash' only has")
-    {
-        return TransportError::invalid(
-            "that stash entry is no longer there. The list has been re-read.",
-        );
-    }
-    if combined.contains("no local changes to save") {
-        return TransportError::invalid(
-            "there is nothing to stash: the working tree matches the last commit.",
-        );
-    }
-    TransportError::shell(output.message(what))
 }
 
 #[cfg(test)]

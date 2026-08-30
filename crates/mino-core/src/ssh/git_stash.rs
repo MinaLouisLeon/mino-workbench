@@ -33,8 +33,13 @@ impl GitStashTransport for SshTransport {
 
     async fn stash_push(&self, request: StashRequest) -> Result<()> {
         validate(&request)?;
+        let connected = self.connected().await?;
+        let root = connected.root.root().to_string();
         let argv = command::stash_push_argv(request.trimmed(), request.include_untracked);
-        self.expect(argv, "stash push").await
+        // Not `expect`: a `stash push` that stashed nothing still **exits
+        // zero**. See `git::stash::pushed`.
+        let output = run_with_input(&connected.handle, &root, &argv, None).await?;
+        git::stash::pushed(&output)
     }
 
     async fn stash_apply(&self, index: u32, pop: bool) -> Result<()> {

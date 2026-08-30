@@ -27,7 +27,10 @@ impl GitStashTransport for LocalTransport {
         validate(&request)?;
         let root = self.guard()?.root_display();
         let argv = command::stash_push_argv(request.trimmed(), request.include_untracked);
-        expect(&root, argv, "stash push").await
+        // Not `expect`: a `stash push` that stashed nothing still **exits
+        // zero**, and reporting that as success would send the reader looking
+        // for work on a stack that has no such entry.
+        git::stash::pushed(&run_with_input(&root, &argv, None).await?)
     }
 
     async fn stash_apply(&self, index: u32, pop: bool) -> Result<()> {
