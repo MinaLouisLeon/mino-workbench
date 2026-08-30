@@ -35,8 +35,25 @@ export interface GitHubContextValue {
    * the workbench already reads. `null` on a detached HEAD or an unborn
    * branch, which is why the checks section has a sentence for having no
    * branch at all.
+   *
+   * **Read `branchKnown` before believing a `null`.**
    */
   branch: string | null;
+
+  /**
+   * Whether git has answered yet.
+   *
+   * `branch` is `null` both when there is no branch *and* before the status
+   * has been read - and `useGitStatus` deliberately waits a moment before it
+   * asks, so that second window is real on every session. Treating the two as
+   * one meant a link built in that window named the repository's default
+   * branch instead of the one you are on, and the checks section said "there
+   * is no branch checked out" about a branch that was simply not read yet.
+   *
+   * So `branch === null` means "there is no branch" **only** once this is
+   * true. Until then it means "not yet".
+   */
+  branchKnown: boolean;
   /**
    * Bumped by the header's refresh and by a branch change. Every section keys
    * its read on this - which is the whole of the polling policy: on mount, on

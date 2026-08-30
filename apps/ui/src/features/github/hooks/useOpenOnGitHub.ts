@@ -39,11 +39,17 @@ export function useOpenOnGitHub(
   currentLine: () => number | null,
 ): OpenOnGitHubState {
   const transport = useTransport();
-  const { state, branch } = useGitHubContext();
+  const { state, branch, branchKnown } = useGitHubContext();
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const available = state === "ready" && path !== null;
+  // `branchKnown`, not `branch !== null`: a detached HEAD has no branch and
+  // the command still applies - `gh` falls back to the default branch, which
+  // is the only address there is. What must not happen is building a link
+  // during the window before git has answered, because that link would name
+  // the default branch while the reader is on another one, and it would look
+  // right.
+  const available = state === "ready" && path !== null && branchKnown;
 
   const open = useCallback(() => {
     if (path === null) return;

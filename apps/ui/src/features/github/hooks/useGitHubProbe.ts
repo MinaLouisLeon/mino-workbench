@@ -33,9 +33,12 @@ import type { GitHubContextValue, GitHubViewState } from "../types";
 export function useGitHubProbe(): GitHubContextValue {
   const transport = useTransport();
   const { connection } = useSessionContext();
-  const { repository: gitRepository } = useGitStatusContext();
+  const { repository: gitRepository, availability } = useGitStatusContext();
   const root = connection?.root ?? null;
   const branch = gitRepository?.branch ?? null;
+  // Git has answered, whatever it concluded. Until then a `null` branch means
+  // "not read yet" rather than "there is none" - see `GitHubContextValue`.
+  const branchKnown = availability !== "loading";
 
   const [state, setState] = useState<GitHubViewState>("notConnected");
   const [repository, setRepository] = useState<GitHubRepository | null>(null);
@@ -121,5 +124,6 @@ export function useGitHubProbe(): GitHubContextValue {
     refresh,
     reviewing,
     review: setReviewing,
+    branchKnown,
   };
 }

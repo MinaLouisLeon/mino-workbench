@@ -31,10 +31,21 @@ function renderPanel(overrides = {}) {
   return fake;
 }
 
-/** Expands the section, which is collapsed by default. */
+/**
+ * Expands the section and waits for its controls to be usable.
+ *
+ * The wait is not incidental. Fetch, pull and push are disabled until *both*
+ * the remotes list and the branch have been read, and the branch comes from a
+ * status the workbench deliberately waits a moment before asking for - so a
+ * test that clicked as soon as the button existed would be clicking a disabled
+ * button on a slow machine, and failing somewhere else entirely.
+ */
 async function openRemote() {
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: /Remote/ }));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Fetch" })).toBeEnabled(),
+  );
   return user;
 }
 
@@ -99,10 +110,13 @@ describe("the remote controls", () => {
   });
 
   it("says so when there is no remote to talk to", async () => {
+    // Expanded directly rather than through `openRemote`: there are no
+    // controls to wait for, which is the thing being asserted.
     renderPanel({ remotes: [] });
-    await openRemote();
-    expect(
-      await screen.findByText(/no remote configured/),
-    ).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Remote/ }));
+
+    expect(await screen.findByText(/no remote configured/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Fetch" })).toBeNull();
   });
 });

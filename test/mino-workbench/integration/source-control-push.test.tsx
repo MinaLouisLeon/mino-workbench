@@ -34,10 +34,19 @@ function renderPanel(overrides = {}) {
   return fake;
 }
 
-/** Expands the section, which is collapsed by default. */
+/**
+ * Expands the section and waits for its controls to be usable.
+ *
+ * The wait is not incidental: the controls are disabled until both the remotes
+ * list and the branch have been read. See the same helper in
+ * `source-control-remote.test.tsx`.
+ */
 async function openRemote() {
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name: /Remote/ }));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Fetch" })).toBeEnabled(),
+  );
   return user;
 }
 
