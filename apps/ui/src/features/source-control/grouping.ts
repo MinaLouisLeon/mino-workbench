@@ -1,4 +1,4 @@
-import type { GitEntry, GitFileState } from "@/Types";
+import type { DirEntry, GitEntry, GitFileState } from "@/Types";
 
 import { SOURCE_CONTROL_COPY } from "./messages";
 import type { ChangeGroupModel, ChangeRowModel } from "./types";
@@ -94,4 +94,43 @@ function sort(rows: ChangeRowModel[]): ChangeRowModel[] {
   return rows.sort((a, b) =>
     a.entry.relativePath.localeCompare(b.entry.relativePath),
   );
+}
+
+/**
+ * How many paths a merge has left unsettled.
+ *
+ * Beside the grouping because it is the same kind of thing - a fact derived
+ * from one `GitStatus` rather than asked for - and because putting it here
+ * keeps the panel's hook to wiring.
+ *
+ * Either side counts. A conflicted path shows `U` on the index side, the
+ * worktree side, or both depending on which of the seven shapes it is, and a
+ * commit is blocked by all of them.
+ */
+export function countConflicts(
+  entries: ReadonlyMap<string, GitEntry>,
+): number {
+  return [...entries.values()].filter(
+    (entry) => entry.index === "conflicted" || entry.worktree === "conflicted",
+  ).length;
+}
+
+/**
+ * A change row as the selection concept the rest of the app uses.
+ *
+ * Here rather than in the hook for the same reason `countConflicts` is: it
+ * derives one shape from another and holds no state. The `size` and
+ * `modifiedMs` are zero and null because the row does not know them and the
+ * viewer does not need them - it reads the file itself.
+ */
+export function entryFor(row: ChangeRowModel): DirEntry {
+  return {
+    path: row.entry.path,
+    name: row.name,
+    kind: "file",
+    size: 0,
+    modifiedMs: null,
+    readonly: false,
+    hidden: row.name.startsWith("."),
+  };
 }

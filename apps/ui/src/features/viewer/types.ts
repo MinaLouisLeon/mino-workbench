@@ -1,4 +1,11 @@
-import type { FilePayload, GitBlameLine, GitFileDiff } from "@/Types";
+import type { RefObject } from "react";
+
+import type {
+  FilePayload,
+  GitBlameLine,
+  GitFileDiff,
+  GitHubReviewThread,
+} from "@/Types";
 
 export type ViewerStatus = "empty" | "loading" | "ready" | "error";
 
@@ -90,6 +97,31 @@ export interface CodeMirrorOptions {
   visible: boolean;
   /** Per-line authorship for the gutter, or `null` when blame is off. */
   blame: ReadonlyMap<number, GitBlameLine> | null;
+  /**
+   * Review threads for the open file, or an empty array.
+   *
+   * Only the placeable ones are drawn - see `features/github/reviewGutter`.
+   * An outdated thread has no line and is listed in the panel below the
+   * editor instead of being pinned to one it might not belong to.
+   */
+  review: readonly GitHubReviewThread[];
+  /** Called when a gutter marker is pressed, with the line it sits on. */
+  onOpenReview: (line: number) => void;
+}
+
+/**
+ * What `useCodeMirror` hands back.
+ *
+ * The container ref is what it always returned. `currentLine` was added for
+ * #19, and is a **function rather than state** on purpose: the line the cursor
+ * is on is only wanted at the moment somebody asks for a link to it, and
+ * keeping it in React would be a re-render on every arrow key to answer a
+ * question nobody had yet asked.
+ */
+export interface CodeMirrorHandle {
+  container: RefObject<HTMLDivElement | null>;
+  /** 1-based, as editors and GitHub both count. `null` with no editor. */
+  currentLine: () => number | null;
 }
 
 export interface EditorStatusProps {

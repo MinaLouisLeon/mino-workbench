@@ -8,15 +8,27 @@
 //! Git works the same way: `git.rs` shells out to the `git` binary with an
 //! argv array, and a machine without git gets one sentence saying so rather
 //! than a failure per call.
+//!
+//! GitHub is the same shape a third time, in `github.rs`, and it is the reason
+//! the spawning itself now lives in `child.rs`: `git` and `gh` need the same
+//! argv rule, the same stdin close and the same `kill_on_drop`, and two copies
+//! of that would be two places to forget one. What differs between them is the
+//! binary and the timeout, because only one of the two goes over the network.
 
+mod child;
+mod connect;
 mod fs;
 mod git;
 mod git_branches;
+mod git_conflicts;
 mod git_guard;
 mod git_history;
 mod git_read;
+mod git_remote;
 mod git_run;
 mod git_stash;
+mod github;
+mod github_run;
 mod pipelines;
 mod pty;
 mod pty_spawn;

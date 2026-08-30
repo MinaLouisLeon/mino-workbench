@@ -26,13 +26,24 @@ Defined in `crates/mino-core/src/transport.rs`. Mirrored one-for-one by
 | `probe_shell` (`transport.rs`) | Tauri `probe_shell` · agent `{"method":"probeShell"}` | – | `ShellProbe` |
 | *(stream)* | Tauri event `pty://<id>` · agent `{"result":"ptyEvent"}` | – | `PtyEvent` |
 
+### The one deviation
+
+Rust's `open_pty` returns `PtyStream { session, events }` - a descriptor plus a
+channel. A channel cannot cross IPC, so the desktop layer drains it and
+re-emits each `PtyEvent` on the Tauri event `pty://<session id>`
+(`apps/desktop/src-tauri/src/commands/pty.rs::event_name`). TypeScript's
+`openPty` therefore returns the descriptor, and the stream arrives through
+`onPtyEvent(id, handler)`.
+
 ## The git interface
 
 A **second** trait, `mino_core::transport::GitTransport`, reached from the
 first through `Transport::git() -> Option<&dyn GitTransport>` and mirrored in
-TypeScript as `client.git`. Twenty-five eventual git methods on one trait would
-make every implementation file and the stub macro grow for reasons that have
-nothing to do with cohesion - see `plan/decisions.md` D2.
+TypeScript as `client.git`. Twenty-five git methods on one trait would make
+every implementation file and the stub macro grow for reasons that have nothing
+to do with cohesion - see `plan/decisions.md` D2. In Rust the surface is split
+across five supertraits and in TypeScript across five modules; callers see one
+object either way.
 
 | Function (file) | Method · Endpoint | Params / Body | Returns |
 | --- | --- | --- | --- |
@@ -62,14 +73,225 @@ connected root before git is spawned. `discard` is the only call on this
 interface that destroys data; see the discard rule in
 [git-module.md](git-module.md).
 
-### The one deviation
+### The branch and stash half
 
-Rust's `open_pty` returns `PtyStream { session, events }` - a descriptor plus a
-channel. A channel cannot cross IPC, so the desktop layer drains it and
-re-emits each `PtyEvent` on the Tauri event `pty://<session id>`
-(`apps/desktop/src-tauri/src/commands/pty.rs::event_name`). TypeScript's
-`openPty` therefore returns the descriptor, and the stream arrives through
-`onPtyEvent(id, handler)`.
+Eight more methods on the same trait, reached the same way. They are listed
+apart because they are the first calls on this interface that **change files
+under the other panes**: after a checkout or a stash, some open paths hold
+different bytes and some are not there at all.
+
+| Function (file) | Method · Endpoint | Params / Body | Returns |
+| --- | --- | --- | --- |
+| `branches` (`transport/git/branches.rs`) | Tauri `git_branches` · agent *(not yet)* | – | `GitBranch[]` |
+| `checkout` (`transport/git/branches.rs`) | Tauri `git_checkout` · agent *(not yet)* | `name: string` | `void` |
+| `create_branch` (`transport/git/branches.rs`) | Tauri `git_create_branch` · agent *(not yet)* | `request: CreateBranchRequest` | `GitBranch` |
+| `delete_branch` (`transport/git/branches.rs`) | Tauri `git_delete_branch` · agent *(not yet)* | `name: string`, `force: boolean` | `void` |
+| `stash_list` (`transport/git/stash.rs`) | Tauri `git_stash_list` · agent *(not yet)* | – | `GitStash[]` |
+| `stash_push` (`transport/git/stash.rs`) | Tauri `git_stash_push` · agent *(not yet)* | `request: StashRequest` | `void` |
+| `stash_apply` (`transport/git/stash.rs`) | Tauri `git_stash_apply` · agent *(not yet)* | `index: number`, `pop: boolean` | `void` |
+| `stash_drop` (`transport/git/stash.rs`) | Tauri `git_stash_drop` · agent *(not yet)* | `index: number` | `void` |
+
+A branch **name** is a caller value and is checked twice: locally for anything
+readable as an option, then by `git check-ref-format` for git's own rules. A
+stash **index** is not a string at all - a `u32` becomes `stash@{N}` in Rust,
+so no caller text reaches the selector.
+
+**An index is a position, not an identity.** Dropping an entry renumbers every
+entry below it, so every call that takes one is followed by a re-read rather
+than a local edit of the list.
+
+`delete_branch` with `force`, and `stash_drop`, are the two destructive calls
+here: what they remove is reachable only through the reflog afterwards, which
+this app does not offer. Both are confirmed in the UI first.
+
+```ts
+GitBranch          = { name: string, isHead: boolean, isRemote: boolean,
+                       upstream: string | null, ahead: number, behind: number,
+                       lastCommit: GitCommit | null }
+CreateBranchRequest = { name: string, from: string | null, checkout: boolean }
+StashRequest       = { message: string | null, includeUntracked: boolean }
+GitStash           = { index: number, message: string, branch: string | null,
+                       timestampMs: number }
+```
+
+### The remote and conflict half
+
+Six more methods on the same trait, reached the same way. They are listed
+apart because they are the only calls in this application that **leave the
+machine**, and the only ones that can be asked for a credential.
+
+| Function (file) | Method · Endpoint | Params / Body | Returns |
+| --- | --- | --- | --- |
+| `remotes` (`transport/git/remote.rs`) | Tauri `git_remotes` · agent *(not yet)* | – | `GitRemote[]` |
+| `fetch` (`transport/git/remote.rs`) | Tauri `git_fetch` · agent *(not yet)* | `remote: string \| null` | `GitFetchResult` |
+| `pull` (`transport/git/remote.rs`) | Tauri `git_pull` · agent *(not yet)* | `request: PullRequest` | `GitPullResult` |
+| `push` (`transport/git/remote.rs`) | Tauri `git_push` · agent *(not yet)* | `request: PushRequest` | `GitPushResult` |
+| `conflicts` (`transport/git/conflict.rs`) | Tauri `git_conflicts` · agent *(not yet)* | – | `GitConflict[]` |
+| `resolve` (`transport/git/conflict.rs`) | Tauri `git_resolve` · agent *(not yet)* | `path: string`, `resolution: ConflictResolution` | `void` |
+
+**No credential passes through any of them, and there is none to pass.**
+`plan/decisions.md` D3 settled that git authenticates with its own credential
+helper, the SSH agent or the OS keychain; nothing in this process reads, holds,
+forwards or logs a secret. Every one of these runs with `GIT_TERMINAL_PROMPT=0`
+and a two-minute ceiling, so a machine with no helper configured gets a sentence
+naming what to set up rather than a pane that never finishes.
+
+**Every string they return is redacted.** A remote URL can carry a token, and
+git prints remote URLs unprompted - so `GitRemote`'s two URLs and every
+`summary` and error sentence have been through `mino_core::git::redact` before
+they cross this boundary.
+
+`pull` **rejects** when the working tree is dirty, rather than merging over it
+or stashing on the reader's behalf. `push` **rejects** when the remote refuses,
+with a sentence saying nothing was pushed; it is never retried as a force push.
+
+```ts
+GitRemote        = { name: string, fetchUrl: string, pushUrl: string }
+
+// A request to *perform* a pull. Not a GitHub pull request - that is
+// `GitHubPullRequest`, which is a different thing entirely.
+PullRequest      = { remote: string | null, rebase: boolean }
+PushRequest      = { remote: string | null, branch: string | null,
+                     force: boolean, setUpstream: boolean }
+
+GitPullOutcome   = "alreadyUpToDate" | "fastForwarded" | "merged"
+                 | "rebased" | "conflicted"
+GitPushOutcome   = "pushed" | "alreadyUpToDate"
+
+GitFetchResult   = { remote: string, summary: string | null }
+GitPullResult    = { remote: string, outcome: GitPullOutcome,
+                     summary: string | null }
+GitPushResult    = { remote: string, branch: string, outcome: GitPushOutcome,
+                     summary: string | null, forced: boolean }
+
+GitConflictKind  = "bothModified" | "bothAdded" | "bothDeleted" | "addedByUs"
+                 | "addedByThem" | "deletedByUs" | "deletedByThem"
+GitConflict      = { path: string, relativePath: string,
+                     kind: GitConflictKind }
+ConflictResolution = "ours" | "theirs" | "manual"
+```
+
+`GitPullOutcome.conflicted` is a **state, not a failure**: the merge stopped,
+the files are where it left them, and `conflicts()` is how they get settled.
+
+`PushRequest.force` sends `--force-with-lease`, never `--force`, so a push
+refuses rather than overwriting work this repository has never seen. It is a
+separate, explicitly confirmed action and never a fallback.
+
+`ConflictResolution.manual` discards nothing: it takes the file exactly as it
+is on disk and marks it resolved, which is what makes editing a conflicted file
+in the viewer a first-class way to settle one.
+
+## The GitHub interface
+
+A **third** trait, `mino_core::transport::GitHubTransport`, reached from the
+first through `Transport::github() -> Option<&dyn GitHubTransport>` and
+mirrored in TypeScript as `client.github`. The argument for a separate trait is
+the one `plan/decisions.md` D2 makes about git, inherited rather than re-made.
+
+Two methods, not ten. Five features share one enumerated query rather than each
+bringing a method, a Tauri command and a client method of its own - see
+[github-module.md](github-module.md).
+
+| Function (file) | Method · Endpoint | Params / Body | Returns |
+| --- | --- | --- | --- |
+| `probe` (`transport/github.rs`) | Tauri `github_probe` · agent *(not yet)* | – | `GitHubProbe` |
+| `query` (`transport/github.rs`) | Tauri `github_query` · agent *(not yet)* | `request: GitHubQuery` | `GitHubResponse` |
+
+**No credential passes through either of them, and there is none to pass.**
+Every call ends in a `gh` process that owns its own authentication in the
+operating system keychain. Nothing in `mino-core`, in the Tauri command layer
+or in the client reads, holds, forwards or logs a token.
+
+`probe` has four answers and they are four different facts - `absent`,
+`unauthenticated`, `unsupported`, `ready` - and only the last permits a
+`query`. **None of the first three is an error**; an `Err` from `probe` means
+something else went wrong entirely.
+
+`query` rejects with `invalidArgument` when the session's probe is not `ready`,
+so a section that skipped the probe is told rather than producing an obscure
+`gh` failure two layers down. Every call is bounded by a 20-second timeout
+locally and 30 over SSH, because these go over the network.
+
+```ts
+GitHubAvailability = "absent" | "unauthenticated" | "unsupported" | "ready"
+GitHubRepository   = { nameWithOwner: string, url: string,
+                       defaultBranch: string | null }
+GitHubProbe        = { availability: GitHubAvailability,
+                       repository: GitHubRepository | null,
+                       detail: string | null }
+
+GitHubQuery =
+  | { kind: "runs",              detail: { branch: string, limit: number } }
+  | { kind: "runJobs",           detail: { runId: number } }
+  | { kind: "pullRequests",      detail: { state: PrState, limit: number } }
+  | { kind: "pullRequest",       detail: { number: number } }
+  | { kind: "issues",            detail: { state: IssueState, limit: number } }
+  | { kind: "createPullRequest", detail: { title: string, body: string,
+                                           base: string, draft: boolean } }
+  | { kind: "browseUrl",         detail: { path: string, line: number | null,
+                                           branch: string | null } }
+  | { kind: "reviewComments",    detail: { number: number } }
+  | { kind: "replyToReviewComment",
+      detail: { number: number, commentId: number, body: string } }
+
+GitHubResponse =
+  | { kind: "runs",         detail: GitHubRun[] }
+  | { kind: "jobs",         detail: GitHubJob[] }
+  | { kind: "pullRequests", detail: GitHubPullRequest[] }
+  | { kind: "pullRequest",  detail: GitHubPullRequest }
+  | { kind: "issues",       detail: GitHubIssue[] }
+  | { kind: "created",      detail: GitHubCreated }
+  | { kind: "url",          detail: string }
+  | { kind: "reviewThreads", detail: GitHubReviewThread[] }
+  | { kind: "reviewThread",  detail: GitHubReviewThread }
+
+PrState          = "open" | "closed" | "merged" | "all"
+IssueState       = "open" | "closed" | "all"
+GitHubCheckState = "pending" | "running" | "passed" | "failed"
+                 | "cancelled" | "skipped" | "unknown"
+
+GitHubRun         = { id: number, workflow: string, title: string,
+                      branch: string, state: GitHubCheckState, url: string,
+                      startedMs: number | null }
+GitHubJob         = { name: string, state: GitHubCheckState, url: string | null }
+GitHubPullRequest = { number: number, title: string, author: string, url: string,
+                      state: "open" | "closed" | "merged", isDraft: boolean,
+                      headRef: string, baseRef: string,
+                      checks: GitHubCheckState, updatedMs: number | null,
+                      body: string | null }
+GitHubIssue       = { number: number, title: string, author: string, url: string,
+                      state: "open" | "closed", labels: string[],
+                      updatedMs: number | null }
+GitHubCreated     = { url: string, number: number | null }
+
+GitHubReviewComment = { id: number, author: string, body: string,
+                        url: string, createdMs: number | null }
+GitHubReviewThread  = { id: number, path: string, line: number | null,
+                        outdated: boolean, resolved: boolean,
+                        comments: GitHubReviewComment[] }
+```
+
+`GitHubReviewThread.line` is `null` exactly when `outdated` is true, and that
+pair is the whole of #17's hard part. A review comment is anchored to a
+position in a **diff**, not to a line in a file; when the pull request gains
+commits, that position is gone. Such a thread is listed and **never drawn
+against a line** - pinning it to `original_line` would put somebody's objection
+next to whatever now happens to sit there.
+
+`replyToReviewComment` is the second query that writes. Its body travels to
+`gh` as JSON on **stdin**, and it answers with the thread **re-read** rather
+than with the one comment `gh` hands back.
+
+`GitHubQuery` is an **enum, not a string**: a caller picks a variant and the
+`gh` subcommand behind it lives in Rust. There is no shape of this type that
+names a subcommand or adds a flag. `createPullRequest` is the only variant that
+writes; its `body` travels to `gh` on **stdin** rather than in argv, and the UI
+confirms before sending it.
+
+Every text field that came back is **untrusted input** - written by whoever
+opened the pull request or filed the issue. It is rendered as text, never as
+markup, and never sent back to `gh`.
 
 ## Request and response shapes
 

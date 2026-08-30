@@ -4,7 +4,7 @@ import type { GitCommit } from "@/Types";
 import { useTransport } from "@/context/TransportContext";
 import { describeFailure } from "@/lib/transportError";
 
-import { SOURCE_CONTROL_COPY } from "../messages";
+import { CONFLICT_COPY, SOURCE_CONTROL_COPY } from "../messages";
 import type { CommitState } from "../types";
 
 /** How long the "committed" confirmation stays up. A flash, not a state. */
@@ -12,6 +12,15 @@ const LANDED_MS = 4000;
 
 interface CommitBoxInput {
   stagedCount: number;
+  /**
+   * How many paths a merge has left unsettled.
+   *
+   * Git refuses to commit while any path is unmerged, and this is the check
+   * the reader actually sees. The two are not redundant - git's is the one
+   * that is definitely right - but this is the one that stops somebody typing
+   * a paragraph they cannot use.
+   */
+  conflictCount: number;
   busy: boolean;
   /** The panel's action runner: awaits, then refreshes the tree. */
   run: (action: () => Promise<unknown>) => void;
@@ -31,6 +40,7 @@ interface CommitBoxInput {
  */
 export function useCommitBox({
   stagedCount,
+  conflictCount,
   busy,
   run,
 }: CommitBoxInput): CommitState {
@@ -40,7 +50,7 @@ export function useCommitBox({
   const [error, setError] = useState<string | null>(null);
   const [landed, setLanded] = useState<string | null>(null);
 
-  const blocked = blockedReason(message, stagedCount);
+  const blocked = blockedReason(message, stagedCount, conflictCount);
 
   const commit = useCallback(() => {
     if (blocked || committing || busy) return;
@@ -95,7 +105,16 @@ export function useCommitBox({
  * state - "nothing happens when I click commit" is a bad way to learn that
  * nothing is staged.
  */
-function blockedReason(message: string, stagedCount: number): string | null {
+function blockedReason(
+  message: string,
+  stagedCount: number,
+  conflictCount: number,
+): string | null {
+  // First, because it is the one the reader can do nothing about from this
+  // box: an unsettled merge blocks the commit whatever is staged and whatever
+  // is typed, and saying "stage something" instead would send them the wrong
+  // way entirely.
+  if (conflictCount > 0) return CONFLICT_COPY.needsResolving;
   if (message.trim() === "") return SOURCE_CONTROL_COPY.needsMessage;
   if (stagedCount === 0) return SOURCE_CONTROL_COPY.needsStaged;
   return null;

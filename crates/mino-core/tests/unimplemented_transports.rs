@@ -2,9 +2,10 @@
 //! built: the remote-agent transport compiles, answers every method, and never
 //! panics.
 //!
-//! The git half of the walk is `fixture::unbuilt_git`, because `GitTransport`
-//! now has three surfaces on it and enumerating all of them is the largest
-//! thing here without being what this file is about.
+//! The git and GitHub halves of the walk are in `fixture::unbuilt_git`,
+//! because `GitTransport` now has three surfaces on it and enumerating all of
+//! them - plus the two GitHub methods beside them - is the largest thing here
+//! without being what this file is about.
 //!
 //! The SSH transport used to be asserted here too. It is implemented now, so
 //! its contract moved to `ssh_transport.rs` - an unbuilt method there would be
@@ -90,6 +91,8 @@ async fn assert_every_method_unimplemented(
     ));
 
     fixture::unbuilt_git::assert_every_git_method_unimplemented(transport, kind).await;
+    fixture::unbuilt_remote::assert_every_git_remote_method_unimplemented(transport, kind).await;
+    fixture::unbuilt_remote::assert_every_github_method_unimplemented(transport, kind).await;
 }
 
 #[tokio::test]

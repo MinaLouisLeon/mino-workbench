@@ -4,16 +4,19 @@ import type { FakeGitHistoryOptions } from "./fake-git-history";
 import { createFakeGitHistory } from "./fake-git-history";
 import type { FakeGitRefsOptions } from "./fake-git-refs";
 import { createFakeGitRefs } from "./fake-git-refs";
+import type { FakeGitRemoteOptions } from "./fake-git-remote";
+import { createFakeGitRemote } from "./fake-git-remote";
 
 import type {
   CommitRequest,
   GitClient,
   GitCommit,
-  GitEntry,
   GitRepository,
   GitStatus,
   TransportError,
 } from "@/Types";
+
+import { LANDED_COMMIT } from "./fake-git-rows";
 
 /**
  * The fake git surface, kept beside the fake transport rather than in it so
@@ -21,29 +24,10 @@ import type {
  * `fake-search.ts` and `fake-shell.ts` already use.
  */
 
-/** A repository on `main`, clean, tracking `origin/main`. */
-export const CLEAN_REPOSITORY: GitRepository = {
-  root: "/root",
-  branch: "main",
-  head: "3f2a1c9",
-  detached: false,
-  upstream: "origin/main",
-  ahead: 0,
-  behind: 0,
-};
-
-/** The commit a successful `commit()` reports, unless a test says otherwise. */
-export const LANDED_COMMIT: GitCommit = {
-  sha: "3f2a1c9d8e7b6a5f4e3d2c1b0a9f8e7d6c5b4a39",
-  shortSha: "3f2a1c9",
-  summary: "A committed change",
-  author: "Test",
-  timestampMs: 1_788_024_729_000,
-};
-
 export interface FakeGitOptions
   extends FakeGitHistoryOptions,
-    FakeGitRefsOptions {
+    FakeGitRefsOptions,
+    FakeGitRemoteOptions {
   /**
    * What `repository()` answers. `undefined` means "not a repository", which
    * is the default because most folders are not one - a fake that was a
@@ -59,7 +43,22 @@ export interface FakeGitOptions
 }
 
 export function createFakeGit(options: FakeGitOptions = {}): GitClient {
+  return createFakeGitSurface(options).client;
+}
+
+/**
+ * The same, with the record of what the mutating remote calls were asked for.
+ *
+ * `createFakeGit` is the shape every existing test uses and stays that shape;
+ * this is what `createFakeTransport` reaches for so a test can assert that an
+ * unconfirmed push never happened.
+ */
+export function createFakeGitSurface(options: FakeGitOptions = {}): {
+  client: GitClient;
+  remote: ReturnType<typeof createFakeGitRemote>;
+} {
   const repository = options.repository ?? null;
+  const remote = createFakeGitRemote(options);
 
   /** Throws the failure a test configured for `key`, if there is one. */
   const refuse = (key: string) => {
@@ -67,11 +66,14 @@ export function createFakeGit(options: FakeGitOptions = {}): GitClient {
     if (failure) throw failure;
   };
 
-  return {
+  const client: GitClient = {
     // The reading half of history, which defaults to nothing to show.
     ...createFakeGitHistory(options),
     // Branches and the stash, which default to nothing there.
     ...createFakeGitRefs(options),
+    // Remotes and conflicts, which default to one remote and nothing
+    // conflicted - the honest quiet answer for both.
+    ...remote.client,
 
     repository: vi.fn(async () => {
       refuse("git.repository");
@@ -115,19 +117,5 @@ export function createFakeGit(options: FakeGitOptions = {}): GitClient {
       };
     }),
   };
-}
-
-/** One status entry, with the two sides defaulted to a plain modification. */
-export function makeGitEntry(
-  path: string,
-  overrides: Partial<GitEntry> = {},
-): GitEntry {
-  return {
-    path,
-    relativePath: path.replace(/^\/root\//, ""),
-    index: "unmodified",
-    worktree: "modified",
-    originalPath: null,
-    ...overrides,
-  };
+  return { client, remote };
 }

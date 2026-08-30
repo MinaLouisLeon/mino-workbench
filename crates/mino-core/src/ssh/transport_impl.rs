@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 
 use crate::error::{Result, TransportError};
-use crate::transport::{GitTransport, Transport};
+use crate::transport::{GitHubTransport, GitTransport, Transport};
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
     PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
@@ -125,6 +125,14 @@ impl Transport for SshTransport {
     /// The remote host's own git, over the exec channel. Present whether or
     /// not the host has git installed - the first call is what says so.
     fn git(&self) -> Option<&dyn GitTransport> {
+        Some(self)
+    }
+
+    /// The remote host's own `gh`, over the same exec channel, authenticated
+    /// with the remote account's own credentials. This machine's `gh` login
+    /// is not involved and no token crosses the connection - which is the
+    /// credential position holding up exactly as well at a distance.
+    fn github(&self) -> Option<&dyn GitHubTransport> {
         Some(self)
     }
 }

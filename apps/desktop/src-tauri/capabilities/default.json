@@ -1,7 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Everything the workbench window is allowed to do. Only the folder picker is granted beyond the core defaults; filesystem and shell access go through the transport commands, never through a plugin.",
+  "description": "Everything the workbench window is allowed to do. Only the folder picker and opening a github.com address are granted beyond the core defaults; filesystem and shell access go through the transport commands, never through a plugin.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:default", "dialog:allow-open"]
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/*" }]
+    }
+  ]
 }

@@ -4,9 +4,12 @@
 //! because `GitTransport` now has three surfaces on it and walking all of them
 //! is the largest thing in that file without being what the file is about.
 //!
-//! The point of walking *every* method: the branch and stash surfaces are
+//! The point of walking *every* method: the four extra surfaces are
 //! supertraits reached through the same object, and the one that was forgotten
 //! would panic the first time a picker opened rather than answering.
+//!
+//! The remote, conflict and GitHub walks are in `unbuilt_remote.rs`, which
+//! also carries the two sentences those three need that these do not.
 
 use mino_core::types::TransportKind;
 use mino_core::{Transport, TransportError};

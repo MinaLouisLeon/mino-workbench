@@ -5,9 +5,13 @@ import { TauriTransport } from "./tauri/TauriTransport";
 
 export { AgentTransport } from "./agent/AgentTransport";
 export { AgentGitClient } from "./agent/AgentGitClient";
+export { AgentGitHubClient } from "./agent/AgentGitHubClient";
+export { AgentGitRemoteClient } from "./agent/AgentGitRemoteClient";
 export { TauriTransport } from "./tauri/TauriTransport";
 export { TauriGitClient } from "./tauri/TauriGitClient";
 export { TauriGitHistoryClient } from "./tauri/TauriGitHistoryClient";
+export { TauriGitRemoteClient } from "./tauri/TauriGitRemoteClient";
+export { TauriGitHubClient } from "./tauri/TauriGitHubClient";
 
 /** Default agent endpoint. Loopback only - the daemon refuses anything else. */
 export const DEFAULT_AGENT_URL = "ws://127.0.0.1:8731/ws";

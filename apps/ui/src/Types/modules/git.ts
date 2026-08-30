@@ -17,6 +17,7 @@ import type {
   GitStatus,
 } from "../generated";
 import type { GitBranchClient } from "./git-branches";
+import type { GitConflictClient, GitRemoteClient } from "./git-remote";
 import type { GitHistoryClient } from "./git-history";
 import type { GitStashClient } from "./git-stash";
 
@@ -46,15 +47,18 @@ export type GitCommitArgs = { request: CommitRequest };
  * Split the way the trait is. Two methods read the working tree - they serve
  * the tree's badges, the header's branch and dirty marker, and the search
  * walk's ignore predicate, all from one `GitStatus`. Four change it: the
- * source control panel. Five more read *history*, and eight move between
- * branches and set work aside. Those three groups live in `./git-history`,
- * `./git-branches` and `./git-stash` and are inherited here, so `client.git`
- * stays one surface however many files describe it.
+ * source control panel. Five more read *history*, eight move between branches
+ * and set work aside, and six more talk to a remote or settle a conflict.
+ * Those groups live in `./git-history`, `./git-branches`, `./git-stash` and
+ * `./git-remote`, and are inherited here, so `client.git` stays one surface
+ * however many files describe it.
  */
 export interface GitClient
   extends GitHistoryClient,
     GitBranchClient,
-    GitStashClient {
+    GitStashClient,
+    GitRemoteClient,
+    GitConflictClient {
   /**
    * The repository containing the connected root, or `null` when the root is
    * not inside one. `null` is an answer, not a failure: most folders are not

@@ -7,15 +7,21 @@
 //! [`crate::remote`] (compiling, every method returns
 //! [`TransportError::Unimplemented`]).
 //!
-//! Git is the one thing that is *not* on this trait. It is a second trait,
+//! Git and GitHub are the two things that are *not* on this trait. Git is a
+//! second trait,
 //! [`GitTransport`], reached through [`Transport::git`]. Twenty-five git
 //! methods on one trait would make every implementation file and the stub
 //! macro grow for reasons that have nothing to do with cohesion, and "is there
 //! git here?" is better asked once, at the type level, than answered by every
 //! method separately. See `plan/decisions.md` D2.
 //!
+//! GitHub is a third, [`GitHubTransport`], reached through
+//! [`Transport::github`], and it is deliberately two methods rather than ten:
+//! five features share one enumerated query. See `plan/phase-5-github.md`.
+//!
 //! The TypeScript client in `apps/ui/src/Types/modules/api.ts` mirrors this
-//! trait one method for one method, and `client.git` mirrors the second one.
+//! trait one method for one method, and `client.git` and `client.github`
+//! mirror the other two.
 //! The only deviation is `open_pty`: Rust returns a [`PtyStream`] (descriptor +
 //! channel), while TypeScript returns the descriptor and takes the stream
 //! through `onPtyEvent`, because a channel cannot cross the IPC boundary.
@@ -30,8 +36,12 @@ use crate::types::{
 };
 
 mod git;
+mod github;
 
-pub use git::{GitBranchTransport, GitStashTransport, GitTransport};
+pub use git::{
+    GitBranchTransport, GitConflictTransport, GitRemoteTransport, GitStashTransport, GitTransport,
+};
+pub use github::GitHubTransport;
 
 #[async_trait]
 pub trait Transport: Send + Sync + 'static {
@@ -98,4 +108,17 @@ pub trait Transport: Send + Sync + 'static {
     /// concept of one. Not an error, and not "this folder is not a
     /// repository" either - that question is [`GitTransport::repository`]'s.
     fn git(&self) -> Option<&dyn GitTransport>;
+
+    /// The GitHub surface for this session, on the same terms as
+    /// [`Transport::git`]: `None` where the target has no concept of one, and
+    /// never an answer to "is there a GitHub repository here" - that question
+    /// is [`GitHubTransport::probe`]'s, and it has four answers rather than
+    /// two.
+    ///
+    /// A third trait rather than two more methods here, for the reason git is
+    /// a second one. It is small - two methods, because five features share
+    /// one enumerated query - and it holds a rule none of the others do:
+    /// every call under it shells out to `gh`, so this application never
+    /// holds a GitHub credential.
+    fn github(&self) -> Option<&dyn GitHubTransport>;
 }

@@ -7,6 +7,7 @@ import type {
   DirEntry,
   FilePayload,
   GitClient,
+  GitHubClient,
   OpenPtyArgs,
   PathArgs,
   PtyEvent,
@@ -37,6 +38,7 @@ import { TRANSPORT_COMMANDS } from "@/Types";
 
 import { invokeTransport } from "./invoke";
 import { TauriGitClient } from "./TauriGitClient";
+import { TauriGitHubClient } from "./TauriGitHubClient";
 
 const DEFAULT_READ_OPTIONS: ReadFileOptions = {
   maxBytes: null,
@@ -56,6 +58,7 @@ function ptyChannel(id: PtySessionId): string {
 export class TauriTransport implements TransportClient {
   readonly kind: TransportKind = "local";
   readonly git: GitClient = new TauriGitClient();
+  readonly github: GitHubClient = new TauriGitHubClient();
 
   connect(target: ConnectionTarget): Promise<ConnectionInfo> {
     return invokeTransport(TRANSPORT_COMMANDS.connect, {

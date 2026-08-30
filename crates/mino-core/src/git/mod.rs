@@ -25,6 +25,14 @@
 //! from git rather than assuming.** A checkout either switched or it did not,
 //! and [`branches::failure`] is where the difference becomes a sentence.
 //!
+//! A fourth arrives with phase 6, and it is about safety again: **no text from
+//! a call that talked to a remote reaches a message, a result or a log without
+//! going through [`redact`] first.** Not when it looks suspicious - always. A
+//! remote configured as `https://user:token@host/o/r` is an ordinary thing to
+//! find in somebody's `.git/config`, and git will print it back in a progress
+//! line without being asked. See `plan/decisions.md` D3, which is what makes
+//! that the *only* place a credential can appear: this app holds none.
+//!
 //! Git *missing* is a different thing and is an error - a typed one, with a
 //! sentence the reader can act on. The UI asks once, through `repository()`,
 //! and every git surface goes quiet for the session when the answer comes back
@@ -36,13 +44,16 @@ pub mod branch;
 pub mod branches;
 pub mod command;
 pub mod commit;
+pub mod conflicts;
 pub mod diff;
 pub mod guard;
 pub mod history;
 mod interpret;
 pub mod paths;
 pub mod porcelain;
+pub mod redact;
 pub mod refname;
+pub mod remote;
 pub mod revision;
 pub mod stash;
 

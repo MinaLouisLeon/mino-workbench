@@ -18,22 +18,40 @@ process. Tauri commands are dispatch only. If a pane needs data, it needs a
 transport method - adding one to the trait, its three implementations, the
 Tauri command list and the TypeScript client is the correct amount of work.
 
-**Two traits, one rule.** Git is a second trait, `mino_core::GitTransport`,
+**Three traits, one rule.** Git is a second trait, `mino_core::GitTransport`,
 reached through `Transport::git()` and mirrored in TypeScript as `client.git`.
-The rule above is unchanged and covers both: git shells out to the `git` binary
-inside `mino-core`, and no component or Tauri command spawns it. The split is
-there because git's eventual twenty-five methods on one trait would make every
-implementation file and the stub macro grow for reasons that have nothing to do
-with cohesion, and because "is there git here?" is better answered once at the
-type level than by twenty-five methods each returning a not-a-repository error.
-See `plan/decisions.md` D2 and `docs/mino-workbench/git-module.md`.
+GitHub is a third, `mino_core::GitHubTransport`, reached through
+`Transport::github()` and mirrored as `client.github`. The rule above is
+unchanged and covers all three: git shells out to the `git` binary and GitHub
+to the `gh` CLI, both inside `mino-core`, and no component or Tauri command
+spawns either. The git split is there because its eventual twenty-five methods
+on one trait would make every implementation file and the stub macro grow for
+reasons that have nothing to do with cohesion, and because "is there git here?"
+is better answered once at the type level than by twenty-five methods each
+returning a not-a-repository error. The GitHub split is the same argument for a
+much smaller surface - two methods, because five features share one enumerated
+query. See `plan/decisions.md` D2, `docs/mino-workbench/git-module.md` and
+`docs/mino-workbench/github-module.md`.
+
+**And one rule about credentials, which both of them keep.** Every GitHub call
+goes through `gh`, and every `fetch`, `pull` and `push` goes through git's own
+credential helper, the SSH agent or the OS keychain. **This application never
+holds a credential of any kind** - see `plan/decisions.md` D3. That is why it
+can tell you to run `gh auth login`, or to configure a helper, but can never
+offer to do either for you.
+
+Two things follow. Every remote call runs with `GIT_TERMINAL_PROMPT=0` and a
+timeout, because a prompt with nowhere to go is a hang. And **no text from a
+call that talked to a network reaches a message, a result or a log without
+going through `crates/mino-core/src/git/redact.rs`** - a remote URL can carry a
+token, and git prints remote URLs unprompted.
 
 Three implementations exist so the interface is proven against three shapes:
 
 | Implementation | Crate path | Status |
 | --- | --- | --- |
-| Local | `crates/mino-core/src/local/` | Working, git included |
-| SSH | `crates/mino-core/src/ssh/` | Working - SFTP for files, SSH channels for shells and git |
+| Local | `crates/mino-core/src/local/` | Working, git and GitHub included |
+| SSH | `crates/mino-core/src/ssh/` | Working - SFTP for files, SSH channels for shells, git and `gh` |
 | Remote agent | `crates/mino-core/src/remote/` | Compiles, returns `Unimplemented` |
 
 `todo!()` and `unimplemented!()` are banned in `mino-core` (enforced by
@@ -91,10 +109,27 @@ equivalent here is given.
   argv array of fixed program text (`crates/mino-core/src/git/command.rs`); the
   working directory is the only caller-influenced value, and over SSH it is
   single-quoted by a function that refuses what it cannot quote.
+- A caller naming a `gh` subcommand. `GitHubQuery` is an enum, and the program
+  text for each variant lives in `crates/mino-core/src/github/command/`. Caller
+  values travel as argv; a pull request body travels on stdin.
+- A remote call hanging on a prompt. `fetch`, `pull` and `push` run with
+  `GIT_TERMINAL_PROMPT=0` and a ceiling, so a machine with no credential helper
+  gets a sentence rather than a spinner.
+- Git's own words about a remote reaching a message unredacted. A URL can carry
+  a token; `git::redact` removes the userinfo from every one of them, always.
+- A **force push** offered as a way out of a rejected push. It is a separate,
+  separately confirmed action, and it sends `--force-with-lease` - never
+  `--force`.
+- A pull merging over uncommitted work. A dirty tree is refused with a sentence
+  naming what to do; nothing is stashed on the reader's behalf.
+- Text that came back from `gh` being rendered as markup or sent back to `gh`.
+  Titles, labels and bodies are written by whoever opened the pull request or
+  the issue, and are treated exactly as filenames are.
 - The agent daemon binding to anything but loopback. It has no authentication
   yet and refuses a routable bind address outright.
 - A credential, private key or passphrase written to disk, to a log or to
   browser storage. Local storage holds layout preferences and nothing else.
+  There is no GitHub token anywhere in this app to write: `gh` keeps its own.
 - An orphaned child process. Sessions are killed on close, on disconnect and
   on window destroy.
 

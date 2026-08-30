@@ -1,4 +1,10 @@
+import { useRef } from "react";
+
 import { Notice, Pane, StatusMessage } from "@/components/ui";
+import { OpenOnGitHub } from "@/features/github/components/OpenOnGitHub";
+import { ReviewForFile } from "@/features/github/components/ReviewForFile";
+import { useGitHubContext } from "@/features/github/context/GitHubContext";
+import { useReviewThreads } from "@/features/github/hooks/useReviewThreads";
 import { basename } from "@/lib/path";
 
 import { useViewerMode } from "../context/ViewerModeContext";
@@ -13,6 +19,7 @@ import { ViewerModeToggle } from "./ViewerModeToggle";
 
 /** Presentational: state, guards and the editor instance all come from hooks. */
 export function ViewerPane() {
+  const panel = useRef<HTMLDivElement | null>(null);
   const {
     status,
     payload,
@@ -31,6 +38,10 @@ export function ViewerPane() {
   } = useFileEditor();
 
   const { mode, blame } = useViewerMode();
+  // #17. `reviewing` is null unless the reader picked a pull request, so this
+  // costs no call and draws nothing by default.
+  const { reviewing } = useGitHubContext();
+  const review = useReviewThreads(reviewing, path);
   const showingDiff = mode === "diff";
   const showEditor = !showingDiff && status === "ready";
 
@@ -40,7 +51,7 @@ export function ViewerPane() {
   const diff = useFileDiff(showingDiff);
   const blameState = useBlame(blame && showEditor);
 
-  const container = useCodeMirror({
+  const editor = useCodeMirror({
     content: draft,
     extension: payload?.extension ?? null,
     editable,
@@ -49,6 +60,11 @@ export function ViewerPane() {
     onSave: () => void save(),
     visible: showEditor,
     blame: blame ? blameState.byLine : null,
+    review: review.forPath,
+    // Pressing a gutter marker scrolls the panel into view rather than
+    // opening anything: the threads are already listed below, and a marker
+    // that opened a second surface would be a second place to read them.
+    onOpenReview: () => panel.current?.scrollIntoView({ block: "nearest" }),
   });
 
   return (
@@ -57,6 +73,10 @@ export function ViewerPane() {
       accessory={
         path ? (
           <span className="flex items-center gap-2">
+            {/* #19. Renders nothing at all where there is no GitHub
+                repository, no gh, or no file - a control that is present but
+                dead is one the reader keeps trying. */}
+            <OpenOnGitHub path={path} currentLine={editor.currentLine} />
             <ViewerModeToggle blameLoading={blameState.loading} />
             <EditorStatus
               name={basename(path)}
@@ -93,7 +113,7 @@ export function ViewerPane() {
             `useCodeMirror` is told when it comes back, because a CodeMirror
             laid out at zero height measures itself wrong. */}
         <div
-          ref={container}
+          ref={editor.container}
           hidden={!showEditor}
           aria-label={path ? `Contents of ${basename(path)}` : "File contents"}
           className="min-h-0 flex-1"
@@ -120,6 +140,10 @@ export function ViewerPane() {
             tone={guarded ? "warning" : "danger"}
           />
         )}
+
+        {/* Renders nothing unless a review is running. Outdated threads are
+            listed there and never drawn in the gutter - see `ReviewPanel`. */}
+        <ReviewForFile review={review} number={reviewing} ref={panel} />
       </div>
     </Pane>
   );

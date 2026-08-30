@@ -13,25 +13,24 @@
 //!
 //! ## The halves
 //!
-//! Three traits, not one, and the split is the same one the TypeScript client
-//! makes with `GitClient extends GitBranchClient, GitStashClient`.
-//! [`GitBranchTransport`] and [`GitStashTransport`] are supertraits of this
-//! one, so `transport.git()` still hands back a single object with every
-//! method on it - the division is in the files, where it keeps each
-//! implementation readable, and not in the interface, where it would make
-//! callers ask which surface they are holding.
+//! Five traits, not one, and the split is the same one the TypeScript client
+//! makes with `GitClient extends GitBranchClient, GitStashClient, …`. All four
+//! of [`GitBranchTransport`], [`GitStashTransport`], [`GitRemoteTransport`]
+//! and [`GitConflictTransport`] are supertraits of this one, so
+//! `transport.git()` still hands back a single object with every method on it.
+//! The division is in the files, where it keeps each implementation readable,
+//! and not in the interface, where it would make callers ask which surface
+//! they are holding. Each carries its own argument in its own file;
+//! [`GitRemoteTransport`] is the one to read first, because its three calls
+//! are the only ones in this application that leave the machine.
 //!
-//! The read methods answer questions and cannot lose anything - `status` and
-//! `repository` say what the tree looks like now, and `diff`, `log`, `show`
-//! and `blame` say what happened. The four mutating ones change the
-//! repository, and share one contract:
+//! The read methods answer questions and cannot lose anything. The four
+//! mutating ones change the repository, and share one contract:
 //!
 //! - **Every path is guarded first.** [`crate::git::guard`] rules on each one
 //!   against the *session* root before it can reach argv, on both transports.
 //!   A batch containing one refused path runs for none of them.
-//! - **An empty slice means everything.** That is what the group-level
-//!   controls in the source control panel send, and it is why the slice is
-//!   never treated as "nothing to do".
+//! - **An empty slice means everything** - what the group-level controls send.
 //! - **They refresh nothing.** Each returns when git has finished; re-reading
 //!   [`GitTransport::status`] is the caller's decision, made once after the
 //!   action rather than on a timer.
@@ -45,13 +44,25 @@ use crate::types::{
 };
 
 mod branches;
+mod conflict;
+mod remote;
 mod stash;
 
 pub use branches::GitBranchTransport;
+pub use conflict::GitConflictTransport;
+pub use remote::GitRemoteTransport;
 pub use stash::GitStashTransport;
 
 #[async_trait]
-pub trait GitTransport: GitBranchTransport + GitStashTransport + Send + Sync + 'static {
+pub trait GitTransport:
+    GitBranchTransport
+    + GitStashTransport
+    + GitRemoteTransport
+    + GitConflictTransport
+    + Send
+    + Sync
+    + 'static
+{
     /// The repository containing the connected root, or `None` when the root
     /// is not inside one. Absence is not an error: most folders are not
     /// repositories, and the UI renders that as a quiet state.

@@ -17,6 +17,7 @@ everything else is a hook local to its feature.
 | `DraftsContext` | `features/viewer/context/DraftsContext.tsx` | the session's `DraftStore` | the editor writes it; source control clears a file's draft when it discards that file |
 | `ChangeRowContext` | `features/source-control/context/ChangeRowContext.tsx` | one change row's data and handlers | the row's parts |
 | `ViewerModeContext` | `features/viewer/context/ViewerModeContext.tsx` | `mode`, `blame`, and the commit a file was opened at | the viewer; the history list writes to it |
+| `GitHubContext` | `features/github/context/GitHubContext.tsx` | the probe's `state`, `repository`, `detail`, the current `branch`, one `refresh`, and which pull request is being `reviewing`ed | the four GitHub sections, the viewer header's "open on github.com", and the viewer's review gutter |
 
 `TransportProvider` takes an optional `client`, which is the seam tests inject
 a fake through. Production calls `createTransport()`.
@@ -25,6 +26,12 @@ a fake through. Production calls `createTransport()`.
 because the header and the tree both read it: one `git status` for the window,
 not one per pane and never one per row. Rows *read* status; they are never
 handed it.
+
+`GitHubProvider` sits **inside** it, for the same reason and one more. One `gh`
+probe serves the pane's four sections and the viewer header, rather than five
+calls; and every section is scoped to a branch, which it reads from the git
+status the workbench already has rather than asking a second time. Two readings
+of which branch is checked out could disagree.
 
 ## Hooks
 
@@ -49,7 +56,18 @@ handed it.
 | `useFileDiff` | `features/viewer/hooks/useFileDiff.ts` | the open file's diff, working-tree or commit, with a stale-answer guard |
 | `useBlame` | `features/viewer/hooks/useBlame.ts` | per-line authorship, on demand only |
 | `useFileViewer` | `features/viewer/hooks/useFileViewer.ts` | reading the selected file, guard classification |
-| `useCodeMirror` | `features/viewer/hooks/useCodeMirror.ts` | the read-only editor instance |
+| `useCodeMirror` | `features/viewer/hooks/useCodeMirror.ts` | the editor instance, and the cursor's line read on demand |
+| `useGitHubProbe` | `features/github/hooks/useGitHubProbe.ts` | the one probe, its four states, and the refresh policy |
+| `useGitHubQuery` | `features/github/hooks/useGitHubQuery.ts` | every GitHub read, and the reason none of them is on a timer |
+| `useChecks` | `features/github/hooks/useChecks.ts` | the latest run, and the jobs call made only for a failed one |
+| `usePullRequests` | `features/github/hooks/usePullRequests.ts` | the list, and the body read one at a time on selection |
+| `useIssues` | `features/github/hooks/useIssues.ts` | the list, read only once the section is opened |
+| `useNewPullRequest` | `features/github/hooks/useNewPullRequest.ts` | the form, the confirmation gate, and the URL it made |
+| `useOpenOnGitHub` | `features/github/hooks/useOpenOnGitHub.ts` | asking `gh` where a file lives, then handing the URL to the browser |
+| `useReviewThreads` | `features/github/hooks/useReviewThreads.ts` | one pull request's review threads, filtered to the open file, and replies |
+| `useRemote` | `features/source-control/hooks/useRemote.ts` | fetch, pull and push - and the two separate confirmations that guard the last one |
+| `useRemoteList` | `features/source-control/hooks/useRemoteList.ts` | the configured remotes, read once the section is opened |
+| `useConflicts` | `features/source-control/hooks/useConflicts.ts` | what a merge could not settle, and the three ways to settle one |
 | `useXterm` | `features/terminal/hooks/useXterm.ts` | the terminal instance and its fit addon |
 | `useTerminalResize` | `features/terminal/hooks/useTerminalResize.ts` | refit on container resize, coalesced per frame |
 | `useTerminalSession` | `features/terminal/hooks/useTerminalSession.ts` | binding one PTY session to one terminal |
@@ -66,8 +84,11 @@ logic, it gets a hook.
 | `mino.sidebar.v1` | `{ activeView, collapsed }` | `localStorage` |
 
 **Nothing else.** No credentials, no private keys, no passphrases, no host
-secrets, no file contents, no directory listings, and no git state - branch
-names, shas and status entries are read fresh and never written down. An
+secrets, no file contents, no directory listings, and no git or GitHub state -
+branch names, shas, status entries, pull request titles and the GitHub probe
+are all read fresh and never written down. **There is no credential of any kind
+to write:** `gh` owns its own, git uses its helper or the SSH agent, and this
+app never sees either - see `plan/decisions.md` D3. An
 unsent commit message lives in component state and goes with the window; a
 draft lives in `DraftsContext` and does the same. The viewer's mode is not
 persisted either: it is about the file in front of you rather than a layout

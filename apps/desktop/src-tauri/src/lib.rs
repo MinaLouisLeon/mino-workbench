@@ -19,6 +19,13 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // The only way a URL leaves this window. #19 opens a file on
+        // github.com through the operating system's browser rather than by
+        // letting the page navigate: a webview that can be sent to an
+        // arbitrary address is a webview somebody else can steer. The
+        // capability scopes it to github.com; see
+        // `capabilities/default.json`.
+        .plugin(tauri_plugin_opener::init())
         .manage(state::AppState::new())
         .invoke_handler(tauri::generate_handler![
             commands::connection::connect,
@@ -47,6 +54,14 @@ pub fn run() {
             commands::git_stash::git_stash_push,
             commands::git_stash::git_stash_apply,
             commands::git_stash::git_stash_drop,
+            commands::git_remote::git_remotes,
+            commands::git_remote::git_fetch,
+            commands::git_remote::git_pull,
+            commands::git_remote::git_push,
+            commands::git_remote::git_conflicts,
+            commands::git_remote::git_resolve,
+            commands::github::github_probe,
+            commands::github::github_query,
             commands::pty::open_pty,
             commands::pty::write_pty,
             commands::pty::resize_pty,

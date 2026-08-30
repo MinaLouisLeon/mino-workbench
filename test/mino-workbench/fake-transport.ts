@@ -3,7 +3,6 @@ import { vi } from "vitest";
 import type {
   ConnectionInfo,
   ConnectionTarget,
-  DirEntry,
   FilePayload,
   PtyEvent,
   PtyEventHandler,
@@ -11,7 +10,6 @@ import type {
   PtySessionId,
   SearchHits,
   SearchQuery,
-  ShellProbe,
   StructuredOutput,
   TransportClient,
   TransportError,
@@ -19,28 +17,23 @@ import type {
 } from "@/Types";
 
 import { makeEntry } from "./fake-entries";
-import type { FakeGitOptions } from "./fake-git";
-import { createFakeGit } from "./fake-git";
+import { createFakeGitSurface } from "./fake-git";
+import { createFakeGitHub } from "./fake-github";
 import { searchFiles } from "./fake-search";
+import type { FakeTransportOptions } from "./fake-options";
 import { NU_PRESENT_PROBE } from "./fake-shell";
 
-export { CLEAN_REPOSITORY, makeGitEntry } from "./fake-git";
+export type { FakeTransportOptions } from "./fake-options";
+
+// One line per fixture module: every test imports its rows from here.
+export * from "./fake-git-rows";
+export * from "./fake-git-remote-rows";
+export * from "./fake-github-rows";
 export { EMPTY_DIFF, line, makeFileDiff, makeHunk } from "./fake-git-history";
 export { makeBranch, makeStash } from "./fake-git-refs";
 // Imported above as well: `writeFile` builds its answer with it, and a bare
 // re-export would leave the name unbound inside this module.
 export { makeEntry };
-
-export interface FakeTransportOptions extends FakeGitOptions {
-  listings?: Record<string, DirEntry[]>;
-  files?: Record<string, FilePayload>;
-  failures?: Record<string, TransportError>;
-  shellProbe?: ShellProbe;
-  session?: Partial<PtySession>;
-  structured?: StructuredOutput;
-  /** Paths the search walk would find, relative to the root. */
-  searchable?: string[];
-}
 
 /**
  * The primary test seam: a fake implementation of the same interface the panes
@@ -66,6 +59,11 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
     if (failure) return Promise.reject(failure);
     return null;
   };
+
+  // Built first so its request log can be returned beside the client: half of
+  // what the GitHub tests assert is what was asked for, and when.
+  const github = createFakeGitHub(options);
+  const git = createFakeGitSurface(options);
 
   const client: TransportClient = {
     kind: "local",
@@ -119,7 +117,8 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
         options.structured ?? { value: [], stderr: "" },
     ),
     probeShell: vi.fn(async () => options.shellProbe ?? NU_PRESENT_PROBE),
-    git: createFakeGit(options),
+    git: git.client,
+    github: github.client,
     onPtyEvent: vi.fn(async (id: PtySessionId, handler: PtyEventHandler) => {
       listeners.set(id, handler);
       return () => listeners.delete(id);
@@ -135,7 +134,15 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
     emit,
     session,
     listenerCount: () => listeners.size,
-    /** What was saved, by path. */
+    /** What `writeFile` was handed, by path. */
     saved,
+    // What the mutating calls were *asked for*. Half of what phases 5 and 6
+    // assert is here rather than in the rendering: an unconfirmed push and a
+    // collapsed section that fetched are both invisible to a DOM query.
+    githubRequests: github.requests,
+    countGitHub: github.countOf,
+    pushes: git.remote.pushes,
+    pulls: git.remote.pulls,
+    resolutions: git.remote.resolutions,
   };
 }

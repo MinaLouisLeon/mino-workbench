@@ -74,3 +74,25 @@ pub async fn connected(root: &Path) -> LocalTransport {
     transport.connect(&target).await.expect("connect");
     transport
 }
+
+/// The local identity, and the two settings that would otherwise make a test
+/// hang or compare platform noise.
+///
+/// Shared with `git_remote.rs`, which builds its clones the same way.
+pub fn identify(root: &Path) {
+    git(root, &["config", "user.email", "test@example.invalid"]);
+    git(root, &["config", "user.name", "Test"]);
+    // A machine with `commit.gpgsign` on globally would otherwise wait for a
+    // passphrase that nothing here can answer.
+    git(root, &["config", "commit.gpgsign", "false"]);
+    // And Windows checkouts default to `core.autocrlf=true`, which would make
+    // every byte comparison in a test a comparison of platforms.
+    git(root, &["config", "core.autocrlf", "false"]);
+}
+
+/// Writes `content` to `path` in `root` and commits it.
+pub fn commit_file(root: &Path, path: &str, content: &str, message: &str) {
+    std::fs::write(root.join(path), content).unwrap();
+    git(root, &["add", path]);
+    git(root, &["commit", "-m", message]);
+}
