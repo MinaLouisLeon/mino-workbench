@@ -13,9 +13,15 @@
 /// Generates `impl GitTransport` where every method returns
 /// [`crate::TransportError::Unimplemented`] naming the transport and the
 /// method. Replace methods one at a time as a transport is built out.
+///
+/// The branch and stash surfaces are supertraits, so this expands
+/// [`crate::unimplemented_git_ref_transports`] too: a transport that has
+/// built none of git writes one line, not three.
 #[macro_export]
 macro_rules! unimplemented_git_transport {
     ($ty:ty, $kind:expr) => {
+        $crate::unimplemented_git_ref_transports!($ty, $kind);
+
         #[::async_trait::async_trait]
         impl $crate::transport::GitTransport for $ty {
             async fn repository(&self) -> $crate::Result<Option<$crate::types::GitRepository>> {

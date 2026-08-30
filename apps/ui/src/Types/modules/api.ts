@@ -34,7 +34,9 @@ import type {
   TransportKind,
 } from "../generated";
 import type { GitClient, GitCommand } from "./git";
+import type { GitBranchCommand } from "./git-branches";
 import type { GitHistoryCommand } from "./git-history";
+import type { GitStashCommand } from "./git-stash";
 
 /** Tauri command names. The only place these strings are written down. */
 export const TRANSPORT_COMMANDS = {
@@ -54,13 +56,15 @@ export const TRANSPORT_COMMANDS = {
 } as const;
 
 /**
- * Every Tauri command name, both traits' worth. `invokeTransport` takes this,
- * so a command that is not on one of the two maps cannot be invoked at all.
+ * Every Tauri command name, every surface's worth. `invokeTransport` takes
+ * this, so a command that is not on one of the maps cannot be invoked at all.
  */
 export type TransportCommand =
   | (typeof TRANSPORT_COMMANDS)[keyof typeof TRANSPORT_COMMANDS]
+  | GitBranchCommand
   | GitCommand
-  | GitHistoryCommand;
+  | GitHistoryCommand
+  | GitStashCommand;
 
 /** Command argument payloads, one per command that takes arguments. */
 export type ConnectArgs = { target: ConnectionTarget };

@@ -21,17 +21,34 @@
 //! it from stdin sidesteps quoting entirely, and is what makes
 //! `Fix Bob's bug` a commit message rather than an error.
 //!
+//! Phase 4 adds two more, in [`branch`] and [`stash`]:
+//!
+//! | Value | How it stays data |
+//! | --- | --- |
+//! | Branch names | Checked by [`crate::git::refname`] - a local refusal for anything readable as an option, then `git check-ref-format` for git's own rules - and placed beside a `--` separator so a name and a filename can never be confused |
+//! | Stash indices | Not strings at all. A `u32` becomes `stash@{N}` in [`stash::selector`], so no caller text reaches the selector |
+//!
+//! The one exception is a **stash message**, which has no stdin form and
+//! travels in argv. Locally that is safe; over SSH it meets the quoting rule
+//! below, which refuses an apostrophe rather than escaping it.
+//!
 //! The one caller-influenced value that still reaches the command line is the
 //! working directory, and that is quoted (and refused when it cannot be) by
 //! `ssh::command::quote`.
 
+mod branch;
 mod history;
 mod read;
+mod stash;
 mod write;
 
+pub use branch::{branches_argv, checkout_argv, create_argv, delete_argv, BRANCH_FORMAT};
 pub use history::{blame_argv, commit_diff_argv, diff_argv, log_argv, show_argv, COMMIT_FORMAT};
 pub use read::{
     branch_argv, head_commit_argv, ignored_argv, repository_argv, status_argv, version_argv,
+};
+pub use stash::{
+    selector, stash_apply_argv, stash_drop_argv, stash_list_argv, stash_push_argv, STASH_FORMAT,
 };
 pub use write::{commit_argv, discard_argv, stage_argv, unstage_argv};
 

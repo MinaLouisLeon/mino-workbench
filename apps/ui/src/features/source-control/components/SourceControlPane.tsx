@@ -1,18 +1,16 @@
-import { Minus, Plus, Undo2 } from "lucide-react";
-
 import { Notice, Pane, StatusMessage } from "@/components/ui";
 import { useGitStatusContext } from "@/features/git/context/GitStatusContext";
 import { useSelection } from "@/features/workbench/context/SelectionContext";
 
 import { useSourceControl } from "../hooks/useSourceControl";
 import { SOURCE_CONTROL_COPY } from "../messages";
+import { BranchControl } from "./BranchControl";
 import { ChangeGroup } from "./ChangeGroup";
 import { CommitBox } from "./CommitBox";
 import { DiscardConfirm } from "./DiscardConfirm";
+import { GroupActions } from "./GroupActions";
 import { HistorySection } from "./HistorySection";
-
-const GROUP_ACTION_CLASSES =
-  "rounded p-1 text-textFaint hover:bg-surfaceHover hover:text-text focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong disabled:opacity-40";
+import { StashSection } from "./StashSection";
 
 /** Presentational: every decision it renders comes from useSourceControl. */
 export function SourceControlPane() {
@@ -62,6 +60,11 @@ export function SourceControlPane() {
           list's. Clipping here is free - the two children already add up to
           exactly this height - and it keeps the overlay anchored. */}
       <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+        {/* Above the commit box, because which branch you are on is the first
+            thing that decides whether the rest of this pane is what you meant
+            to be looking at. */}
+        <BranchControl active={availability === "ready"} />
+
         <CommitBox state={control.commitState} />
 
         {control.error ? (
@@ -87,53 +90,20 @@ export function SourceControlPane() {
                 busy={control.busy}
                 handlers={control.rowHandlers}
               >
-                {group.id === "staged" ? (
-                  <button
-                    type="button"
-                    disabled={control.busy}
-                    onClick={control.unstageAll}
-                    title={SOURCE_CONTROL_COPY.unstageAll}
-                    className={GROUP_ACTION_CLASSES}
-                  >
-                    <Minus size={14} strokeWidth={1.5} aria-hidden="true" />
-                    <span className="sr-only">
-                      {SOURCE_CONTROL_COPY.unstageAll}
-                    </span>
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      disabled={control.busy}
-                      onClick={control.discardAll}
-                      title={SOURCE_CONTROL_COPY.discardAll}
-                      className={GROUP_ACTION_CLASSES}
-                    >
-                      <Undo2 size={14} strokeWidth={1.5} aria-hidden="true" />
-                      <span className="sr-only">
-                        {SOURCE_CONTROL_COPY.discardAll}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={control.busy}
-                      onClick={control.stageAll}
-                      title={SOURCE_CONTROL_COPY.stageAll}
-                      className={GROUP_ACTION_CLASSES}
-                    >
-                      <Plus size={14} strokeWidth={1.5} aria-hidden="true" />
-                      <span className="sr-only">
-                        {SOURCE_CONTROL_COPY.stageAll}
-                      </span>
-                    </button>
-                  </>
-                )}
+                <GroupActions
+                  group={group.id}
+                  busy={control.busy}
+                  control={control}
+                />
               </ChangeGroup>
             ))
           )}
 
           {/* Below the working tree, because what changed *now* is the reason
-              the panel is open; history is what you scroll to. */}
+              the panel is open; the stash and history are what you scroll to.
+              The stash sits above history: it is work you can bring back, and
+              history is work already landed. */}
+          <StashSection active={availability === "ready"} />
           <HistorySection active={availability === "ready"} />
         </div>
 

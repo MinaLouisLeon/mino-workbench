@@ -1,3 +1,4 @@
+import { GitRefreshProvider } from "@/features/git/context/GitRefreshContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
 import { SidebarProvider } from "@/features/sidebar/context/SidebarContext";
 import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
@@ -21,17 +22,24 @@ import { WorkbenchPanes } from "./WorkbenchPanes";
  * control panel clears them when it discards a file, so neither can own the
  * store outright. And the viewer's mode, because the history list sets it when
  * it opens a file at a commit.
+ *
+ * `GitRefreshProvider` is outside `GitStatusProvider` because status is one of
+ * its subscribers: a checkout changes the working tree, and the tree, the
+ * viewer, search and the status all have to re-read from the same event rather
+ * than each deciding for itself when to look again.
  */
 export function Workbench() {
   return (
     <DraftsProvider>
-      <GitStatusProvider>
-        <ViewerModeProvider>
-          <SidebarProvider>
-            <WorkbenchPanes />
-          </SidebarProvider>
-        </ViewerModeProvider>
-      </GitStatusProvider>
+      <GitRefreshProvider>
+        <GitStatusProvider>
+          <ViewerModeProvider>
+            <SidebarProvider>
+              <WorkbenchPanes />
+            </SidebarProvider>
+          </ViewerModeProvider>
+        </GitStatusProvider>
+      </GitRefreshProvider>
     </DraftsProvider>
   );
 }

@@ -36,4 +36,20 @@ export class DraftStore {
     }
     return false;
   }
+
+  /**
+   * Every path with edits that are not on disk.
+   *
+   * The counterpart of `hasUnsaved`, and the reason it is not enough on its
+   * own: a checkout can strand a draft, and a warning that says "you have
+   * unsaved changes" without naming the files is a warning nobody can act on.
+   * See `features/source-control/hooks/useCheckoutGuard`.
+   */
+  unsavedPaths(): string[] {
+    const paths: string[] = [];
+    for (const [path, entry] of this.entries) {
+      if (entry.content !== entry.baseline) paths.push(path);
+    }
+    return paths;
+  }
 }

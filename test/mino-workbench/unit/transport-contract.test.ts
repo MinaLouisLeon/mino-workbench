@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import type { GitClient, TransportClient, TransportError } from "@/Types";
+import type { TransportClient, TransportError } from "@/Types";
 import {
+  GIT_BRANCH_COMMANDS,
   GIT_COMMANDS,
   GIT_HISTORY_COMMANDS,
+  GIT_STASH_COMMANDS,
   TRANSPORT_COMMANDS,
 } from "@/Types";
 import { AgentTransport } from "@/transport";
 
 import { createFakeTransport } from "../fake-transport";
+import { ALL_GIT_COMMANDS, callGit, GIT_METHODS } from "../git-contract";
 
 /** The callable half of the interface: everything but the fields. */
 type TransportMethod = Exclude<keyof TransportClient, "kind" | "git">;
-type GitMethod = keyof GitClient;
 
 /** Every method on the interface, in the order the Rust trait declares them. */
 const METHODS: TransportMethod[] = [
@@ -31,48 +33,6 @@ const METHODS: TransportMethod[] = [
   "probeShell",
   "onPtyEvent",
 ];
-
-/** And every method on the second trait, `mino_core::GitTransport`. */
-const GIT_METHODS: GitMethod[] = [
-  "repository",
-  "status",
-  "stage",
-  "unstage",
-  "discard",
-  "commit",
-  "diff",
-  "log",
-  "show",
-  "commitDiff",
-  "blame",
-];
-
-/** Both command maps, since `GitClient` spans two of them. */
-const ALL_GIT_COMMANDS = { ...GIT_COMMANDS, ...GIT_HISTORY_COMMANDS };
-
-/** One call each, with an argument where the method takes one. */
-function callGit(git: GitClient, method: GitMethod): Promise<unknown> {
-  switch (method) {
-    case "repository":
-      return git.repository();
-    case "status":
-      return git.status();
-    case "commit":
-      return git.commit({ message: "m", all: false, amend: false });
-    case "diff":
-      return git.diff({ path: null, staged: false, against: null });
-    case "log":
-      return git.log({ limit: null, skip: 0, path: null });
-    case "show":
-      return git.show("HEAD");
-    case "commitDiff":
-      return git.commitDiff("HEAD", null);
-    case "blame":
-      return git.blame("/root/a.txt");
-    default:
-      return git[method](["/root/a.txt"]);
-  }
-}
 
 describe("transport client contract", () => {
   it("the fake implements every method the panes may call", () => {
@@ -95,6 +55,8 @@ describe("transport client contract", () => {
     expect(Object.keys(ALL_GIT_COMMANDS)).toHaveLength(GIT_METHODS.length);
     expect(GIT_COMMANDS.repository).toBe("git_repository");
     expect(GIT_HISTORY_COMMANDS.blame).toBe("git_blame");
+    expect(GIT_BRANCH_COMMANDS.checkout).toBe("git_checkout");
+    expect(GIT_STASH_COMMANDS.stashDrop).toBe("git_stash_drop");
   });
 });
 
