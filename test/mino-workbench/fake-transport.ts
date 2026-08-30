@@ -18,6 +18,7 @@ import type {
   WriteRequest,
 } from "@/Types";
 
+import { makeEntry } from "./fake-entries";
 import type { FakeGitOptions } from "./fake-git";
 import { createFakeGit } from "./fake-git";
 import { searchFiles } from "./fake-search";
@@ -25,6 +26,10 @@ import { NU_PRESENT_PROBE } from "./fake-shell";
 
 export { CLEAN_REPOSITORY, makeGitEntry } from "./fake-git";
 export { EMPTY_DIFF, line, makeFileDiff, makeHunk } from "./fake-git-history";
+export { makeBranch, makeStash } from "./fake-git-refs";
+// Imported above as well: `writeFile` builds its answer with it, and a bare
+// re-export would leave the name unbound inside this module.
+export { makeEntry };
 
 export interface FakeTransportOptions extends FakeGitOptions {
   listings?: Record<string, DirEntry[]>;
@@ -35,20 +40,6 @@ export interface FakeTransportOptions extends FakeGitOptions {
   structured?: StructuredOutput;
   /** Paths the search walk would find, relative to the root. */
   searchable?: string[];
-}
-
-export function makeEntry(path: string, overrides: Partial<DirEntry> = {}): DirEntry {
-  const name = path.split(/[\\/]/).pop() ?? path;
-  return {
-    path,
-    name,
-    kind: "file",
-    size: 12,
-    modifiedMs: null,
-    readonly: false,
-    hidden: name.startsWith("."),
-    ...overrides,
-  };
 }
 
 /**

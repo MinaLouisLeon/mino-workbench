@@ -11,10 +11,12 @@
 
 mod fs;
 mod git;
+mod git_branches;
 mod git_guard;
 mod git_history;
 mod git_read;
 mod git_run;
+mod git_stash;
 mod pipelines;
 mod pty;
 mod pty_spawn;

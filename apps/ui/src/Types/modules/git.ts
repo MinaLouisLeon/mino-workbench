@@ -16,7 +16,9 @@ import type {
   GitRepository,
   GitStatus,
 } from "../generated";
+import type { GitBranchClient } from "./git-branches";
 import type { GitHistoryClient } from "./git-history";
+import type { GitStashClient } from "./git-stash";
 
 /**
  * Tauri command names for the git surface. The only place these strings are
@@ -44,10 +46,15 @@ export type GitCommitArgs = { request: CommitRequest };
  * Split the way the trait is. Two methods read the working tree - they serve
  * the tree's badges, the header's branch and dirty marker, and the search
  * walk's ignore predicate, all from one `GitStatus`. Four change it: the
- * source control panel. And five more read *history*, which live in
- * `./git-history` and are inherited here so `client.git` stays one surface.
+ * source control panel. Five more read *history*, and eight move between
+ * branches and set work aside. Those three groups live in `./git-history`,
+ * `./git-branches` and `./git-stash` and are inherited here, so `client.git`
+ * stays one surface however many files describe it.
  */
-export interface GitClient extends GitHistoryClient {
+export interface GitClient
+  extends GitHistoryClient,
+    GitBranchClient,
+    GitStashClient {
   /**
    * The repository containing the connected root, or `null` when the root is
    * not inside one. `null` is an answer, not a failure: most folders are not

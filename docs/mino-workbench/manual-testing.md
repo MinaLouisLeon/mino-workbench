@@ -352,3 +352,59 @@ rather than trusting the pane.
 | TC-224 | **security** - SSH session on a remote repository | Diff, log and blame | All three run on the remote host and agree with `git` there | over SSH | High |
 | TC-225 | Blame on a large file (5 000+ lines) | Turn it on | It arrives without freezing the pane; the gutter lines up | `git_blame` | Medium |
 | TC-226 | Diff showing | Tab through the diff with a screen reader | Each line is read as added, removed or unchanged - not by its colour | none | High |
+
+## 18. Branches and stash
+
+The first section where a click changes files **under the other three panes**.
+So there are two things to check each time, not one: that git did what was
+asked, and that the tree, the viewer and search caught up. Confirm the first
+against `git branch`, `git status` and `git stash list` in the terminal pane
+rather than trusting the panel.
+
+The highest-severity cases here are TC-236 to TC-240. Read them before running
+anything else: they are about an unsaved edit, and getting one of them wrong
+loses work that exists nowhere else.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-227 | A repository with two or more branches | Open source control | The branch you are on is above the commit box, and the header strip still shows it too | `git_repository` | High |
+| TC-228 | Connected | Watch the log, then click the branch control | Nothing is read until the picker opens - the list is not held from when the pane mounted | one `git_branches` on open | Medium |
+| TC-229 | A repository with a remote (`git remote add` + `git fetch`) | Open the picker | Local branches under "Local", remote-tracking ones under "Remote", and `origin/HEAD` is **not** offered twice | `git_branches` | High |
+| TC-230 | The picker open | Look at the branch you are on | Ticked, disabled, and still in the list rather than hidden | none | Medium |
+| TC-231 | A branch ahead of and behind its upstream | Open the picker | Its row shows both counts, and they agree with `git status -sb` | `git_branches` | High |
+| TC-232 | A clean tree, two branches | Pick the other branch | It switches; `git branch` in the terminal agrees | `git_checkout` | High |
+| TC-232a | A repository with a remote branch not checked out locally | Pick its row under "Remote" | A **local** branch of that short name is created and checked out, tracking the remote - not a detached HEAD. Confirm with `git status` | `git_checkout` with the short name | High |
+| TC-233 | Just switched branch, a folder expanded in the tree | Look at the tree | It re-read: files only on the other branch are gone, files only on this one appeared, and **the folder is still expanded** | `list_dir` per loaded folder | High |
+| TC-234 | Just switched branch, a file open in the viewer that differs between them | Look at the viewer | It shows the new branch's contents, not the old ones | `read_file` | High |
+| TC-235 | A file that exists only on the branch you are leaving, open in the viewer | Switch branch | The viewer says the file is gone; it does not go on showing stale text | `read_file` failing | High |
+| TC-236 | **data loss** - a file with unsaved edits in the viewer | Open the picker and choose another branch | A warning appears **before** anything happens, naming the file. `git checkout` has not run - confirm with `git branch` in the terminal | none yet | High |
+| TC-237 | **data loss** - the warning from TC-236 showing | Press Enter, or click "Stay here and save" | Nothing switched, and the unsaved text is exactly as you left it | none | High |
+| TC-238 | **data loss** - the warning showing | Click "Switch to … anyway" | It switches, **and the edit is still in the editor**. Nothing was written to disk on either branch - confirm with `git status` on both | `git_checkout` only | High |
+| TC-239 | **data loss** - unsaved edits in three files | Try to switch | The warning lists all three by path, not just a count | none yet | High |
+| TC-240 | **data loss** - a clean tree, nothing unsaved | Switch branch | No warning at all. One nobody needs is one people learn to click past | `git_checkout` | High |
+| TC-241 | A tracked file edited but not committed, and the other branch changes that file too | Try to switch | It refuses with a sentence saying the switch would overwrite the change, suggesting commit or stash. **The file on disk is untouched and you are still on the same branch** | `git_checkout` failing | High |
+| TC-242 | A tracked file edited, and the other branch does *not* touch that file | Switch | Git carries the change across, as it does in the terminal. The panel still shows it as modified | `git_checkout`, `git_status` | Medium |
+| TC-243 | Search results showing | Switch branch | The results clear rather than going stale. The typed query is still in the box | no new `search_files` | High |
+| TC-244 | The picker open | Type a name and press "Create and switch" | The branch is created and checked out; `git branch` agrees | `git_create_branch` | High |
+| TC-245 | The picker open | Try to create a branch that already exists | A sentence naming it, and nothing is created | `git_create_branch` failing | High |
+| TC-246 | The picker open | Try `a branch`, `feat..thing`, `feat/`, `ends.lock`, `-x` | Each is refused with a sentence; confirm with `git branch` that none was created | refused | High |
+| TC-247 | **security** - the picker open | Try a branch name of `--upload-pack=touch pwned` | Refused before git runs; confirm no file named `pwned` exists | refused | High |
+| TC-248 | A repository with nothing stashed | Open source control | The Stash section is collapsed, and nothing was read for it | no `git_stash_list` | High |
+| TC-249 | Modified tracked files | Expand Stash, type a message, click "Stash changes" | The tree returns to the last commit, and the entry appears with your message and the branch it came from | `git_stash_push`, `git_stash_list` | High |
+| TC-250 | Just stashed, with a file open in the viewer | Look at the tree and the viewer | Both re-read - a stash changes the working tree exactly as a checkout does | `list_dir`, `read_file` | High |
+| TC-251 | An untracked file present, modified tracked files | Stash with "Include untracked files" **off** | The untracked file is still on disk afterwards | `git_stash_push` | High |
+| TC-252 | The same, with the box **on** | Stash | The untracked file is set aside too, and comes back when applied | `git_stash_push` | Medium |
+| TC-253 | One stash entry | Click "Apply, keeping this entry" | The changes come back **and the entry is still listed** | `git_stash_apply` with `pop: false` | High |
+| TC-254 | One stash entry | Click "Apply and remove this entry" | The changes come back and the entry is gone | `git_stash_apply` with `pop: true` | High |
+| TC-255 | Three stash entries | Apply the middle one | The one you clicked, not the top of the stack. Check its message against `git stash list` | `git_stash_apply` with the right index | High |
+| TC-256 | **data loss** - a stash entry | Click the delete control | A confirmation naming the entry, and `git_stash_drop` has **not** run | none yet | High |
+| TC-257 | **data loss** - that confirmation | Press Enter, or click "Keep it" | Nothing is dropped; `git stash list` is unchanged | none | High |
+| TC-258 | **data loss** - three entries | Drop the middle one, then apply what was the last one | The right entry each time. Indices shift after a drop, and the list re-reads rather than being edited in place | `git_stash_drop`, then `git_stash_list` | High |
+| TC-259 | A stash that conflicts with the working tree (edit the same lines, then pop) | Pop it | A sentence saying it conflicts **and that the entry is still on the stack**; `git stash list` confirms it | `git_stash_apply` failing | High |
+| TC-260 | A clean tree | Click "Stash changes" | "There is nothing to stash", not an obscure failure | `git_stash_push` failing | Medium |
+| TC-261 | A stash message containing an apostrophe, **local** session | Stash with it | It works, and the message shows intact | `git_stash_push` | Medium |
+| TC-262 | The same, over **SSH** | Stash with it | Refused with a clear sentence rather than a mangled command - the documented limit of the SSH transport | `git_stash_push` refusing | High |
+| TC-263 | **security** - SSH session on a remote repository | Switch branch, stash and pop | All three run on the remote host; confirm with `git` there | over SSH | High |
+| TC-264 | A detached HEAD (`git checkout <sha>`) | Open source control | The control says there is no branch, and the picker still lists branches to switch to | `git_branches` | Medium |
+| TC-265 | A fresh `git init`, no commits | Open the picker | An empty list and no error - a repository with no commits has no branches yet | `git_branches` | High |
+| TC-266 | The picker and the stash section open | Tab through both with a screen reader | Every control has a spoken name; ahead/behind are read as words, not arrows | none | High |

@@ -31,7 +31,7 @@ use crate::types::{
 
 mod git;
 
-pub use git::GitTransport;
+pub use git::{GitBranchTransport, GitStashTransport, GitTransport};
 
 #[async_trait]
 pub trait Transport: Send + Sync + 'static {

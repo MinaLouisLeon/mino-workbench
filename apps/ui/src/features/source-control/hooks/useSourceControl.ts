@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { useTransport } from "@/context/TransportContext";
+import { useNotifyGitRefresh } from "@/features/git/context/GitRefreshContext";
 import { useGitStatusContext } from "@/features/git/context/GitStatusContext";
 import { useSelection } from "@/features/workbench/context/SelectionContext";
 import { describeFailure } from "@/lib/transportError";
@@ -31,6 +32,7 @@ export function useSourceControl(): SourceControlState {
   const { availability, entries, truncated, error, refresh } =
     useGitStatusContext();
   const { select } = useSelection();
+  const notify = useNotifyGitRefresh();
 
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -99,11 +101,21 @@ export function useSourceControl(): SourceControlState {
   );
 
   // Asking and acting are two functions in `useDiscardPrompt`, and the
-  // transport's discard is reached from exactly one of them.
+  // transport's discard is reached from exactly one of them. It is also the
+  // only action here that rewrites files on disk - staging, unstaging and
+  // committing all move the *index* - so it is the only one that announces a
+  // working-tree change. Firing that on every stage click would have the tree
+  // and the viewer re-read for a change neither of them can see.
   const discard = useDiscardPrompt({
     groups,
     run,
-    discard: (paths) => transport.git.discard(paths),
+    discard: async (paths) => {
+      try {
+        await transport.git.discard(paths);
+      } finally {
+        notify();
+      }
+    },
   });
 
   const staged = groups.find((group) => group.id === "staged")?.rows ?? [];

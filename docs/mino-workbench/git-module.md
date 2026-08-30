@@ -86,10 +86,16 @@ crates/mino-core/src/git/
   command/read.rs    argv for the calls that only read
   command/write.rs   argv for the calls that change something
   command/history.rs argv for diff, log, show and blame
+  command/branch.rs  argv for branches, checkout, create and delete
+  command/stash.rs   argv for the stash, including the stash@{N} selector
   guard.rs           the path guard every path-taking call passes through
   revision.rs        the guard for the values that are not paths
+  refname.rs         the guard for a branch name: a local refusal, then git's own
   commit.rs          one commit parsed, and one refusal read
   branch.rs          the `# branch.*` headers
+  branches.rs        `git branch --format` rows
+  branches/failure.rs why a branch call was refused, as a sentence
+  stash.rs           `git stash list` rows, and a conflicting pop
   porcelain.rs       the --porcelain=v2 -z record loop
   porcelain/record.rs  one status record decoded
   diff.rs            the unified-diff file loop
@@ -108,8 +114,8 @@ reads it.
 
 | Transport | How | File |
 | --- | --- | --- |
-| Local | `tokio::process::Command`, cwd = the guarded root | `local/git.rs`, `local/git_run.rs` |
-| SSH | The exec channel, **every argument** single-quoted | `ssh/git.rs`, `ssh/git_run.rs` |
+| Local | `tokio::process::Command`, cwd = the guarded root | `local/git.rs`, `local/git_branches.rs`, `local/git_stash.rs`, `local/git_run.rs` |
+| SSH | The exec channel, **every argument** single-quoted | `ssh/git.rs`, `ssh/git_branches.rs`, `ssh/git_stash.rs`, `ssh/git_run.rs` |
 | Remote agent | `Unimplemented`, via `unimplemented_git_transport!` | `stub_git.rs` |
 
 Phase 1 could join the SSH arguments raw, because all of them were flags and
@@ -132,6 +138,14 @@ value at all - and `write.rs`, where paths arrive already guarded.
 | `reset --quiet [-- <paths>]` | `unstage()` | Not `restore --staged`, which reads HEAD and fails outright on an unborn branch - exactly when someone is most likely to stage something and change their mind |
 | `restore --worktree -- <paths>` | `discard()` | Restores tracked files, and only those |
 | `commit --quiet --file - --cleanup=strip` | `commit()` | The message arrives on **stdin** |
+| `branch --list --all --format=...` | `branches()` | Local and remote in one call, so a picker cannot disagree with itself across a fetch |
+| `checkout <name> --` | `checkout()` | The trailing `--` is what stops a branch and a file of the same name being ambiguous |
+| `checkout -b <name> [<from>] --`, or `branch -- <name> [<from>]` | `create_branch()` | Genuinely different commands: creating a branch you stay off does not touch the working tree |
+| `branch -d\|-D -- <name>` | `delete_branch()` | `-d` refuses a branch whose commits are nowhere else; `-D` is a parameter, never a default |
+| `stash list -z --format=%gd%x1f%gs%x1f%at` | `stash_list()` | The index comes from the selector git printed, not from the row's position |
+| `stash push [--include-untracked] [-m <message>]` | `stash_push()` | `push`, not `save`: under `save` a message beginning with a dash would be read as a flag |
+| `stash apply\|pop stash@{N}` | `stash_apply()` | One word apart, and the difference is whether the entry survives |
+| `stash drop stash@{N}` | `stash_drop()` | Destructive: what it removes is reachable only through the reflog |
 
 The read calls are prefixed with `--no-optional-locks`, so a background status
 never takes the index lock out from under a `git commit` being typed in the
@@ -325,6 +339,168 @@ would read `main` as a filename.
 never returned; it is how `truncated` is answered without a second call
 counting the whole history.
 
+## Branches and stash
+
+Phase 4 adds the first calls on this interface that **change files under the
+other three panes**. Everything before them either read, or moved the *index*:
+`stage`, `unstage` and `commit` leave the bytes on disk exactly as they were.
+`checkout`, `stash push` and `stash pop` do not.
+
+That is what makes this phase more delicate than its size suggests, and the two
+things it turns on are below: how a branch name is made safe, and what every
+pane does when the ground moves.
+
+### A branch name is checked twice, by two different things
+
+A branch name is neither a path nor a revision, so neither `guard` nor
+`revision` can rule on it. `git/refname.rs` does, in two steps that catch
+different things:
+
+1. **`precheck`** refuses, without running anything: an empty name, an absurd
+   length, an ASCII control character, whitespace or a quote, and a **leading
+   dash**.
+2. **`git check-ref-format refs/heads/<name>`** answers the rest. Git owns the
+   rule for what a branch may be called, and a hand-rolled regex here would be
+   a second implementation of it - with the one place it disagreed being a bug
+   nobody could see.
+
+The leading dash is why one check is not enough. `refs/heads/-x` is a perfectly
+legal ref name, so `check-ref-format` accepts `-x` - and `git checkout -x`
+reads it as an option. Only the local pre-check catches that, and only
+`check-ref-format` catches `feat..thing`.
+
+The name is prefixed with `refs/heads/` for the check rather than passed to
+`--branch`, for two reasons: `--branch` expands `@{-1}` and would answer for a
+different name than the one about to be used, and the prefix means the name
+cannot be read as an option by the check itself.
+
+The check runs against the git that will run the command - the **remote** one
+over SSH. Asking the local git would be answering with the wrong git.
+
+### A stash index is a number, and a stash message is not
+
+`GitStash.index` is a `u32`, and `stash@{N}` is written in exactly one place
+(`command::stash::selector`). No caller string reaches the selector at all,
+which is the strongest form the injection rule takes here.
+
+A stash **message** is the exception on this interface and is written down
+rather than glossed over: `git stash push -m` has no stdin form, so unlike a
+commit message it travels in argv. Locally that is an argv element and nothing
+parses it. Over SSH the argv becomes a command line and `ssh::command::quote`
+refuses a value containing a single quote, so *a stash message with an
+apostrophe in it is a typed error on a remote target and works locally*. That
+is the documented limit of the SSH transport, the same one that applies to a
+remote filename containing a quote.
+
+### A remote row means the short name
+
+`git checkout origin/feature` **detaches HEAD** - it names a commit, not a
+branch. `git checkout feature` creates a local branch tracking it, which is
+what somebody clicking `origin/feature` in a picker means.
+
+The transport stays faithful to `git checkout <name>`, and `useBranches` makes
+the decision, because it is a decision about `GitBranch.isRemote` and belongs
+where that flag is read. A remote row is checked out by its short name and
+git's own DWIM does the rest; when two remotes both have that name git refuses,
+and the refusal is shown. Changing tracking deliberately is phase 6.
+
+Creating a branch needs no draft warning for the same kind of reason: it starts
+at HEAD, so `git checkout -b` writes nothing to the working tree and there is
+no file for an unsaved edit to be stranded by.
+
+### An index is a position, not an identity
+
+`stash@{0}` means "the top of the stack". Dropping an entry renumbers every
+entry below it. So every call that takes an index is followed by a **re-read**
+of the whole list rather than a local edit of it, in `useStash`. A list whose
+numbers no longer match the rows it is showing is a list where the next click
+acts on the wrong entry - and that is a way to lose work.
+
+### The refresh contract
+
+A checkout or a stash changes files under everything with state keyed by path.
+The shape is **one event, every pane subscribes** -
+`features/git/context/GitRefreshContext.tsx` - rather than four panes each
+guessing when a branch might have changed.
+
+| Pane | What it does | Where |
+| --- | --- | --- |
+| File tree | Re-reads every folder it has **loaded**, keeping expansion. A folder that is gone re-reads into an error at its own level and takes only its own subtree with it | `useFileTree.reload` |
+| Viewer | Re-reads the open file. If it is no longer there, the transport's own "no such file" is what shows, rather than stale text | `useFileViewer` |
+| Search | **Clears** its results. Every hit names a path, and after a checkout some are gone. Re-running is deliberately not done: a full walk is the most expensive thing that pane can do, and a branch switch should not pay for one on behalf of a pane nobody may be looking at. The query text is kept | `useFileSearch` |
+| Source control | Full `status` re-read | `useGitStatus` |
+
+Three things about the event are deliberate:
+
+- **It carries no payload.** Every subscriber's answer is "read again from
+  git", which is the same answer whatever caused it. A reason code would be a
+  thing to keep in agreement across five files for no behaviour that depends on
+  it.
+- **It fires on failure too.** A call that failed halfway is exactly when the
+  panes must read from git rather than assume nothing moved.
+- **`discard` fires it as well**, and staging does not. Discard rewrites files
+  on disk; `stage`, `unstage` and `commit` move the index, and firing the event
+  on every stage click would have the tree and the viewer re-read for a change
+  neither of them can see.
+
+The event is **not** a guard. See below.
+
+### Warning before a checkout that would strand an unsaved draft
+
+The highest-severity risk in the phase, and the one place git cannot help.
+
+A draft was never written to disk. `git status` does not know about it,
+`git checkout` will not refuse because of it, and a stash cannot save it. The
+only place it can be protected is *in front of the call*, which is
+`features/source-control/hooks/useCheckoutGuard.ts`.
+
+It is shaped like `useDiscardPrompt`, and for the same reason: asking and
+acting are two functions, and the transport call is reachable from exactly one
+of them. Two things it deliberately does not do:
+
+- **It never discards a draft.** Both answers keep the edit - cancel and go
+  save it, or switch and keep it in memory for when you come back. Throwing
+  away an unsaved buffer to make a branch switch tidy is not a trade this app
+  offers.
+- **It never writes a draft out.** Saving an edit onto a *different* branch's
+  file is the other half of the risk, and doing it on the user's behalf during
+  a checkout is precisely the silent write that must not happen.
+
+It also does not ask when there is nothing unsaved. A confirmation nobody needs
+is one people learn to click past, which would make the one that matters
+useless.
+
+### A checkout either happened or it did not
+
+Git does not switch halfway, and neither does this. A failure means HEAD is
+where it was and the working tree is untouched, which is what lets the caller
+re-read from truth rather than guessing at a partial state.
+
+`git/branches/failure.rs` is where a refusal becomes a sentence, because
+`checkout` fails for entirely different reasons that git words almost
+identically:
+
+| Git said | The reader is told |
+| --- | --- |
+| `pathspec 'feat' did not match any file(s) known to git` | there is no branch named `feat` |
+| `Your local changes ... would be overwritten` | switching would overwrite changes in the working tree; commit or stash them first, and nothing has been changed |
+| `a branch named 'feat' already exists` | the same, naming it |
+| `The branch 'feat' is not fully merged` | it has commits that are nowhere else, so deleting needs the force option |
+| `Cannot delete branch 'main' checked out at ...` | it is the branch you are on; switch first |
+
+A stash pop that conflicts gets the one that matters most: **the entry is still
+on the stack**, and the conflicting files are marked in the working tree. Full
+conflict resolution is phase 6; saying where things stand is this phase's job.
+
+### What phase 4 leaves out
+
+`delete_branch` is on the transport and tested, and the branch picker does not
+offer it. That is deliberate: the phase's UI is a switcher and a create field,
+and a destructive control belongs with the confirmation and the wording that
+`discard` and `stash drop` already have rather than being added quietly beside
+a menu. No merge, no rebase, no cherry-pick, no tag management, and no changes
+to remote tracking - those arrive with phase 6.
+
 ## The viewer's modes
 
 The viewer gains `file` and `diff`, toggled in the pane header. Two decisions
@@ -389,13 +565,17 @@ syscall.
 
 ## Refreshing
 
-There is no timer. `useGitStatus` refreshes on two events and coalesces bursts
-into one call within 250ms:
+There is no timer. `useGitStatus` refreshes on three events and coalesces
+bursts into one call within 250ms:
 
 - a successful save (`useFileEditor`), the one moment the tree is known to have
   changed;
 - the window regaining focus, which is when a rebase or a pull that happened
-  elsewhere becomes worth noticing.
+  elsewhere becomes worth noticing;
+- a working-tree change this app made itself - a checkout, a stash, a discard -
+  which it does not have to wait for a focus event to find out about. That is
+  the same `GitRefreshContext` event the tree, the viewer and search subscribe
+  to; see [the refresh contract](#the-refresh-contract).
 
 A workbench that polls git is a workbench that fights the terminal beside it.
 
@@ -426,6 +606,11 @@ feature has not earned yet.
 | `useGitEntry` | `features/git/hooks/useGitEntry.ts` | One path's badge and ignored flag |
 | `TreeRow.GitStatus` | `features/file-tree/components/TreeRowParts.tsx` | A new compound part, never a replacement for an existing one |
 | `GitBranchStatus` | `features/git/components/GitBranchStatus.tsx` | Takes no props: reads context, which is what keeps the header under its prop ceiling |
+| `GitRefreshContext` | `features/git/context/GitRefreshContext.tsx` | One "git changed the working tree" event; the tree, viewer, search and status subscribe |
+| `BranchControl` | `features/source-control/components/BranchControl.tsx` | Where you *change* branch; `GitBranchStatus` keeps showing it, and both read one `GitRepository` |
+| `useCheckoutGuard` | `features/source-control/hooks/` | The unsaved-draft warning, in front of the call - asking and acting as two functions |
+| `useBranches`, `useStash` | `features/source-control/hooks/` | Read on open, act, then re-read; a list error and an action error are two slots, so a re-read cannot wipe the sentence explaining a failure |
+| `StashSection` | `features/source-control/components/StashSection.tsx` | Collapsed by default; nothing is read until it is opened |
 
 Badges are letters (M, A, D, R, C, U, T, `!`) in tones named from
 `theme/tokens.ts` - this feature adds no colour of its own. Each letter is
@@ -447,6 +632,15 @@ hidden file already is, rather than being given a tone of its own.
   does not own.
 - A commit message lost to a failed commit. The box keeps its text until the
   transport says the commit landed.
+- A branch name reaching git without going through `refname` - a local refusal
+  for anything readable as an option, then `git check-ref-format`.
+- A caller string reaching a `stash@{N}` selector. An index is a `u32`, and the
+  selector is written in one place.
+- **A checkout stranding an unsaved draft without a warning that names the
+  files.** Neither answer to that warning may discard the draft, and nothing
+  may write it out on the user's behalf.
+- A pane going on showing content from the branch that was checked out a moment
+  ago. One event, and every pane with state keyed by path subscribes.
 
 ## Tests
 
@@ -463,6 +657,16 @@ hidden file already is, rather than being given a tone of its own.
 | `tests/git_discard.rs` | Discard restores the file it names, and moves nothing else |
 | `tests/git_commit.rs` | A sha `git log` agrees with, an apostrophe in the message, amend, and nothing-staged |
 | `tests/git_mutate_guards.rs` | Every mutating method refuses a path outside the root, and a batch is all-or-nothing |
+| `git/branches/tests.rs` | Recorded `--format` rows: the HEAD marker, tracking counts, a remote ref, the `origin/HEAD` symref, a branch with no commit |
+| `git/stash/tests.rs` | Recorded stash rows: both subject forms, a message containing a colon, the selector read rather than counted, a conflicting pop |
+| `git/refname.rs` tests | Every branch name that must be refused before git runs, and every one that must not |
+| `tests/git_branches.rs` | Real repositories: local and remote listed, HEAD marked, ahead/behind, checkout there and back, and a checkout that would overwrite leaving both HEAD and the file alone |
+| `tests/git_branch_writes.rs` | Create with and without checkout, a duplicate name, five names git refuses, and delete refusing the checked-out branch |
+| `tests/git_stash.rs` | Push, list, apply, pop and drop round-tripping; untracked in and out; a clean tree and a missing index as typed errors |
+| `integration/source-control-branches.test.tsx` | The picker's two lists, the current branch marked, ahead/behind, create-and-switch, and a failed checkout's own sentence |
+| `integration/source-control-checkout-guard.test.tsx` | **The transport is not called until the reader answers**, the file is named, and neither answer discards or writes the draft |
+| `integration/source-control-stash.test.tsx` | Collapsed by default, each control's exact index, apply against pop, and the drop confirmation |
+| `integration/git-refresh.test.tsx` | The refresh contract as a group: one checkout, and the tree, viewer and status all read again while search clears |
 | `git/guard/tests.rs` | Traversal, deleted files, and the root itself |
 | `git/commit/tests.rs` | The commit line, and git's refusals read as sentences |
 | `integration/source-control*.test.tsx` | Grouping, staging, the commit box, every discard rule, and the history list |

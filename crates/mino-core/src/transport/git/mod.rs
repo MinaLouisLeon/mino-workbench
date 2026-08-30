@@ -13,6 +13,14 @@
 //!
 //! ## The halves
 //!
+//! Three traits, not one, and the split is the same one the TypeScript client
+//! makes with `GitClient extends GitBranchClient, GitStashClient`.
+//! [`GitBranchTransport`] and [`GitStashTransport`] are supertraits of this
+//! one, so `transport.git()` still hands back a single object with every
+//! method on it - the division is in the files, where it keeps each
+//! implementation readable, and not in the interface, where it would make
+//! callers ask which surface they are holding.
+//!
 //! The read methods answer questions and cannot lose anything - `status` and
 //! `repository` say what the tree looks like now, and `diff`, `log`, `show`
 //! and `blame` say what happened. The four mutating ones change the
@@ -36,8 +44,14 @@ use crate::types::{
     GitRepository, GitStatus, LogRequest,
 };
 
+mod branches;
+mod stash;
+
+pub use branches::GitBranchTransport;
+pub use stash::GitStashTransport;
+
 #[async_trait]
-pub trait GitTransport: Send + Sync + 'static {
+pub trait GitTransport: GitBranchTransport + GitStashTransport + Send + Sync + 'static {
     /// The repository containing the connected root, or `None` when the root
     /// is not inside one. Absence is not an error: most folders are not
     /// repositories, and the UI renders that as a quiet state.
