@@ -5,6 +5,7 @@ import { useTransport } from "@/context/TransportContext";
 import { useSessionContext } from "@/features/workbench/context/SessionContext";
 import { toTransportError, transportErrorMessage } from "@/lib/transportError";
 
+import { useGitRefresh } from "../context/GitRefreshContext";
 import type { GitStatusContextValue, GitStatusState } from "../types";
 
 /**
@@ -76,6 +77,11 @@ export function useGitStatus(): GitStatusContextValue {
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, [refresh]);
+
+  // And the third: a checkout or a stash this app made itself. Those are the
+  // changes it does not have to guess about, so it does not wait for a focus
+  // event to find out.
+  useGitRefresh(refresh);
 
   return { ...state, refresh };
 }

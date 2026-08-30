@@ -2,6 +2,10 @@
 //! built: the remote-agent transport compiles, answers every method, and never
 //! panics.
 //!
+//! The git half of the walk is `fixture::unbuilt_git`, because `GitTransport`
+//! now has three surfaces on it and enumerating all of them is the largest
+//! thing here without being what this file is about.
+//!
 //! The SSH transport used to be asserted here too. It is implemented now, so
 //! its contract moved to `ssh_transport.rs` - an unbuilt method there would be
 //! a regression, not the expected answer.
@@ -10,11 +14,11 @@ use mino_core::types::{
     ConnectionTarget, PtySessionId, PtySize, PtySpawnSpec, ReadFileOptions, SearchQuery,
     StructuredRequest, TransportKind,
 };
-use mino_core::{RemoteAgentTransport, Transport, TransportError};
+use mino_core::{RemoteAgentTransport, Transport};
 
-fn is_unimplemented(err: TransportError, expected: TransportKind) -> bool {
-    matches!(err, TransportError::Unimplemented { transport, .. } if transport == expected)
-}
+mod fixture;
+
+use fixture::unbuilt_git::is_unimplemented;
 
 async fn assert_every_method_unimplemented(
     transport: &dyn Transport,
@@ -85,52 +89,7 @@ async fn assert_every_method_unimplemented(
         kind
     ));
 
-    // The git surface is present rather than absent: `None` would read as
-    // "this target has no git", which is a different fact from "not written
-    // yet" and would send the reader to the wrong file.
-    let git = transport
-        .git()
-        .expect("an unbuilt git surface is still a surface");
-    assert!(is_unimplemented(git.repository().await.unwrap_err(), kind));
-    assert!(is_unimplemented(git.status().await.unwrap_err(), kind));
-
-    let paths = ["/srv/app/x".to_string()];
-    assert!(is_unimplemented(git.stage(&paths).await.unwrap_err(), kind));
-    assert!(is_unimplemented(
-        git.unstage(&paths).await.unwrap_err(),
-        kind
-    ));
-    assert!(is_unimplemented(
-        git.discard(&paths).await.unwrap_err(),
-        kind
-    ));
-    assert!(is_unimplemented(
-        git.commit(mino_core::types::CommitRequest::new("m"))
-            .await
-            .unwrap_err(),
-        kind
-    ));
-    assert!(is_unimplemented(
-        git.diff(mino_core::types::DiffRequest::worktree())
-            .await
-            .unwrap_err(),
-        kind
-    ));
-    assert!(is_unimplemented(
-        git.log(mino_core::types::LogRequest::new())
-            .await
-            .unwrap_err(),
-        kind
-    ));
-    assert!(is_unimplemented(git.show("HEAD").await.unwrap_err(), kind));
-    assert!(is_unimplemented(
-        git.commit_diff("HEAD", None).await.unwrap_err(),
-        kind
-    ));
-    assert!(is_unimplemented(
-        git.blame("/srv/app/x").await.unwrap_err(),
-        kind
-    ));
+    fixture::unbuilt_git::assert_every_git_method_unimplemented(transport, kind).await;
 }
 
 #[tokio::test]

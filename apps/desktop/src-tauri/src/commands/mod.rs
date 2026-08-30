@@ -13,6 +13,8 @@
 pub mod connection;
 pub mod fs;
 pub mod git;
+pub mod git_branches;
 pub mod git_history;
+pub mod git_stash;
 pub mod pty;
 pub mod shell;

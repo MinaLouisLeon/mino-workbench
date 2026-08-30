@@ -20,10 +20,12 @@ pub use file::{
     DEFAULT_WRITE_LIMIT_BYTES,
 };
 pub use git::{
-    CommitRequest, DiffRequest, GitBlame, GitBlameLine, GitChangedFile, GitCommit, GitCommitDetail,
-    GitDiff, GitDiffLine, GitDiffLineKind, GitEntry, GitFileDiff, GitFileState, GitHunk, GitLog,
-    GitRepository, GitStatus, LogRequest, BLAME_SHA_LENGTH, DEFAULT_LOG_LIMIT, DIFF_CONTEXT_LINES,
-    MAX_BLAME_LINES, MAX_COMMIT_MESSAGE_BYTES, MAX_DIFF_LINES, MAX_LOG_LIMIT, MAX_STATUS_ENTRIES,
+    CommitRequest, CreateBranchRequest, DiffRequest, GitBlame, GitBlameLine, GitBranch,
+    GitChangedFile, GitCommit, GitCommitDetail, GitDiff, GitDiffLine, GitDiffLineKind, GitEntry,
+    GitFileDiff, GitFileState, GitHunk, GitLog, GitRepository, GitStash, GitStatus, LogRequest,
+    StashRequest, BLAME_SHA_LENGTH, DEFAULT_LOG_LIMIT, DIFF_CONTEXT_LINES, MAX_BLAME_LINES,
+    MAX_BRANCH_NAME_BYTES, MAX_COMMIT_MESSAGE_BYTES, MAX_DIFF_LINES, MAX_LOG_LIMIT,
+    MAX_STASH_MESSAGE_BYTES, MAX_STATUS_ENTRIES,
 };
 pub use pty::{PtyEvent, PtyExit, PtySession, PtySessionId, PtySize, PtySpawnSpec, PtyStream};
 pub use search::{

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { SearchHit, SearchHits } from "@/Types";
 import { useTransport } from "@/context/TransportContext";
+import { useGitRefresh } from "@/features/git/context/GitRefreshContext";
 import { useSelection } from "@/features/workbench/context/SelectionContext";
 import { useSessionContext } from "@/features/workbench/context/SessionContext";
 import { describeFailure } from "@/lib/transportError";
@@ -88,6 +89,28 @@ export function useFileSearch(): FileSearchState {
     setStatus("idle");
     setError(null);
   }, [root]);
+
+  /**
+   * Clears the results when git changes the working tree, and clears them
+   * *without* re-running the search.
+   *
+   * Every hit names a path, and after a checkout some of those paths are gone.
+   * Leaving a stale list on screen would invite a click that lands nowhere.
+   *
+   * Re-running instead would be defensible, and is deliberately not done: a
+   * walk of the whole tree is the most expensive thing this pane can do, and
+   * spending one on every branch switch - for a pane the reader may not even
+   * be looking at - is not a cost a checkout should carry. The query text is
+   * kept, so one more keystroke searches the branch that is checked out now.
+   */
+  useGitRefresh(
+    useCallback(() => {
+      latest.current += 1;
+      setResult(EMPTY);
+      setError(null);
+      setStatus("idle");
+    }, []),
+  );
 
   const onActivate = useCallback(
     (hit: SearchHit) => select(hit.entry),

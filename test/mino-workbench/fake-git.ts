@@ -2,6 +2,8 @@ import { vi } from "vitest";
 
 import type { FakeGitHistoryOptions } from "./fake-git-history";
 import { createFakeGitHistory } from "./fake-git-history";
+import type { FakeGitRefsOptions } from "./fake-git-refs";
+import { createFakeGitRefs } from "./fake-git-refs";
 
 import type {
   CommitRequest,
@@ -39,7 +41,9 @@ export const LANDED_COMMIT: GitCommit = {
   timestampMs: 1_788_024_729_000,
 };
 
-export interface FakeGitOptions extends FakeGitHistoryOptions {
+export interface FakeGitOptions
+  extends FakeGitHistoryOptions,
+    FakeGitRefsOptions {
   /**
    * What `repository()` answers. `undefined` means "not a repository", which
    * is the default because most folders are not one - a fake that was a
@@ -66,6 +70,8 @@ export function createFakeGit(options: FakeGitOptions = {}): GitClient {
   return {
     // The reading half of history, which defaults to nothing to show.
     ...createFakeGitHistory(options),
+    // Branches and the stash, which default to nothing there.
+    ...createFakeGitRefs(options),
 
     repository: vi.fn(async () => {
       refuse("git.repository");

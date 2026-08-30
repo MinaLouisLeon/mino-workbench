@@ -14,6 +14,10 @@ use mino_core::{LocalTransport, Transport};
 /// Real git repositories, for `git_status.rs`.
 pub mod git;
 
+/// The whole git surface asserted `Unimplemented`, for
+/// `unimplemented_transports.rs`.
+pub mod unbuilt_git;
+
 /// A tree with a nested match, a decoy at the top level, a hidden file, and a
 /// file buried inside a directory the walk must skip.
 pub fn fixture() -> (tempfile::TempDir, LocalTransport) {

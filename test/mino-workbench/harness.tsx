@@ -4,6 +4,7 @@ import { render } from "@testing-library/react";
 
 import type { ConnectionTarget, TransportClient } from "@/Types";
 import { TransportProvider } from "@/context/TransportContext";
+import { GitRefreshProvider } from "@/features/git/context/GitRefreshContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
 import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
 import { ViewerModeProvider } from "@/features/viewer/context/ViewerModeContext";
@@ -45,6 +46,11 @@ export function sshTarget(root: string): ConnectionTarget {
  * `GitStatusProvider` is here because the tree rows and the header read it,
  * and because the fake defaults to "not a repository" - which means every
  * existing test goes on asserting the no-git rendering without saying so.
+ *
+ * `GitRefreshProvider` wraps it for the same reason it does in `Workbench`:
+ * the status, the tree, the viewer and search all subscribe to one
+ * "git changed the working tree" event, and a pane rendered without it would
+ * be a pane the harness could not exercise a checkout against.
  */
 export function renderConnected(
   ui: ReactNode,
@@ -56,13 +62,15 @@ export function renderConnected(
     <TransportProvider client={client}>
       <SessionProvider>
         <DraftsProvider>
-          <GitStatusProvider>
-            <SelectionProvider>
-              <ViewerModeProvider>
-                <Connected target={target}>{ui}</Connected>
-              </ViewerModeProvider>
-            </SelectionProvider>
-          </GitStatusProvider>
+          <GitRefreshProvider>
+            <GitStatusProvider>
+              <SelectionProvider>
+                <ViewerModeProvider>
+                  <Connected target={target}>{ui}</Connected>
+                </ViewerModeProvider>
+              </SelectionProvider>
+            </GitStatusProvider>
+          </GitRefreshProvider>
         </DraftsProvider>
       </SessionProvider>
     </TransportProvider>,
@@ -76,11 +84,13 @@ export function withProviders(client: TransportClient) {
       <TransportProvider client={client}>
         <SessionProvider>
           <DraftsProvider>
-            <GitStatusProvider>
-              <SelectionProvider>
-                <ViewerModeProvider>{children}</ViewerModeProvider>
-              </SelectionProvider>
-            </GitStatusProvider>
+            <GitRefreshProvider>
+              <GitStatusProvider>
+                <SelectionProvider>
+                  <ViewerModeProvider>{children}</ViewerModeProvider>
+                </SelectionProvider>
+              </GitStatusProvider>
+            </GitRefreshProvider>
           </DraftsProvider>
         </SessionProvider>
       </TransportProvider>

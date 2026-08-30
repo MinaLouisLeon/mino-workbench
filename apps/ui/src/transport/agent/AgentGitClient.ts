@@ -1,18 +1,27 @@
 import type {
   CommitRequest,
+  CreateBranchRequest,
   DiffRequest,
   GitBlame,
+  GitBranch,
   GitClient,
   GitCommit,
   GitCommitDetail,
   GitDiff,
   GitLog,
   GitRepository,
+  GitStash,
   GitStatus,
   LogRequest,
+  StashRequest,
   TransportError,
 } from "@/Types";
-import { GIT_COMMANDS, GIT_HISTORY_COMMANDS } from "@/Types";
+import {
+  GIT_BRANCH_COMMANDS,
+  GIT_COMMANDS,
+  GIT_HISTORY_COMMANDS,
+  GIT_STASH_COMMANDS,
+} from "@/Types";
 
 /**
  * The browser git surface: declared, not built.
@@ -75,5 +84,37 @@ export class AgentGitClient implements GitClient {
 
   blame(_path: string): Promise<GitBlame> {
     return this.reject(GIT_HISTORY_COMMANDS.blame);
+  }
+
+  branches(): Promise<GitBranch[]> {
+    return this.reject(GIT_BRANCH_COMMANDS.branches);
+  }
+
+  checkout(_name: string): Promise<void> {
+    return this.reject(GIT_BRANCH_COMMANDS.checkout);
+  }
+
+  createBranch(_request: CreateBranchRequest): Promise<GitBranch> {
+    return this.reject(GIT_BRANCH_COMMANDS.createBranch);
+  }
+
+  deleteBranch(_name: string, _force: boolean): Promise<void> {
+    return this.reject(GIT_BRANCH_COMMANDS.deleteBranch);
+  }
+
+  stashList(): Promise<GitStash[]> {
+    return this.reject(GIT_STASH_COMMANDS.stashList);
+  }
+
+  stashPush(_request: StashRequest): Promise<void> {
+    return this.reject(GIT_STASH_COMMANDS.stashPush);
+  }
+
+  stashApply(_index: number, _pop: boolean): Promise<void> {
+    return this.reject(GIT_STASH_COMMANDS.stashApply);
+  }
+
+  stashDrop(_index: number): Promise<void> {
+    return this.reject(GIT_STASH_COMMANDS.stashDrop);
   }
 }

@@ -12,10 +12,18 @@
 //! - **Argv only.** No caller value is interpolated into a git command line.
 //!   See [`command`]: paths travel as argv elements behind a `--` separator
 //!   and are guarded by [`guard`] first, and a commit message travels on stdin
-//!   rather than in argv at all.
+//!   rather than in argv at all. Branch names are checked by [`refname`]
+//!   against git's own rules, and a stash entry is named by a number that
+//!   [`command::selector`] turns into `stash@{N}`, so no caller text reaches
+//!   the selector at all.
 //! - **Absence is not an error.** A folder that is not inside a repository
 //!   answers `Ok(None)`, because most folders are not repositories and the UI
 //!   renders that as a quiet state, not a failure.
+//!
+//! A third rule arrives with phase 4, and it is not about safety: **a call
+//! that changes the working tree reports what it did, and the panes re-read
+//! from git rather than assuming.** A checkout either switched or it did not,
+//! and [`branches::failure`] is where the difference becomes a sentence.
 //!
 //! Git *missing* is a different thing and is an error - a typed one, with a
 //! sentence the reader can act on. The UI asks once, through `repository()`,
@@ -25,6 +33,7 @@
 
 pub mod blame;
 pub mod branch;
+pub mod branches;
 pub mod command;
 pub mod commit;
 pub mod diff;
@@ -33,7 +42,9 @@ pub mod history;
 mod interpret;
 pub mod paths;
 pub mod porcelain;
+pub mod refname;
 pub mod revision;
+pub mod stash;
 
 use crate::error::TransportError;
 
