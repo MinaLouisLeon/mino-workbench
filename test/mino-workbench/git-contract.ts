@@ -3,6 +3,7 @@ import {
   GIT_BRANCH_COMMANDS,
   GIT_COMMANDS,
   GIT_HISTORY_COMMANDS,
+  GIT_REMOTE_COMMANDS,
   GIT_STASH_COMMANDS,
 } from "@/Types";
 
@@ -41,6 +42,12 @@ export const GIT_METHODS: GitMethod[] = [
   "stashPush",
   "stashApply",
   "stashDrop",
+  "remotes",
+  "fetch",
+  "pull",
+  "push",
+  "conflicts",
+  "resolve",
 ];
 
 /**
@@ -55,6 +62,7 @@ export const ALL_GIT_COMMANDS = {
   ...GIT_HISTORY_COMMANDS,
   ...GIT_BRANCH_COMMANDS,
   ...GIT_STASH_COMMANDS,
+  ...GIT_REMOTE_COMMANDS,
 };
 
 /** One call each, with an argument where the method takes one. */
@@ -92,6 +100,23 @@ export function callGit(git: GitClient, method: GitMethod): Promise<unknown> {
       return git.stashApply(0, false);
     case "stashDrop":
       return git.stashDrop(0);
+    case "remotes":
+      return git.remotes();
+    case "fetch":
+      return git.fetch(null);
+    case "pull":
+      return git.pull({ remote: null, rebase: false });
+    case "push":
+      return git.push({
+        remote: null,
+        branch: null,
+        force: false,
+        setUpstream: false,
+      });
+    case "conflicts":
+      return git.conflicts();
+    case "resolve":
+      return git.resolve("/root/a.txt", "manual");
     // stage, unstage and discard, which all take one array of paths.
     default:
       return git[method](["/root/a.txt"]);

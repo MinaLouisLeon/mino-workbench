@@ -2,16 +2,15 @@
 
 Three of them. **D1 and D2 gate phase 1** and should be answered before a line
 is written, because both are expensive to reverse once nineteen features lean
-on them. D3 is not needed until phase 6 and is recorded here so it does not
-arrive as a surprise.
+on them. **D3 gates phase 6** and was answered when that phase began.
 
-Status: **D1 and D2 resolved**, D3 still open.
+Status: **all three resolved**.
 
 | # | Status | Resolution |
 | --- | --- | --- |
 | D1 | Resolved - option A | Shell out to the `git` binary with an argv array. Implemented in phase 1 |
 | D2 | Resolved - option B | A separate `GitTransport` trait, with the `CLAUDE.md` amendment. Implemented in phase 1 |
-| D3 | Open | Not needed until phase 6 |
+| D3 | Resolved - delegate to the system | Git uses its own credential helper, the SSH agent or the OS keychain. Implemented in phase 6 |
 
 Each recommendation below was taken as written. What phase 1 actually built,
 and where, is in `docs/mino-workbench/git-module.md`.
@@ -188,6 +187,22 @@ this is answered.
 | **Prompt per operation, hold in memory** | Ask when needed, keep it for the session only, never persist. | Honest but easy to get subtly wrong; needs care that it never reaches a log or an error message. |
 | **Read-only remotes** | Ship fetch and status only. Never push. | No credential problem at all. Phase 6 loses its headline feature. |
 
-Recommendation deferred. The system-delegation option is the one that keeps
-the standing rule intact without qualification, and is where this should
-start.
+### Recommendation - **taken**
+
+**Delegate to the system.** It is the only option that keeps the standing rule
+intact *without qualification*: there is no secret to hold, so there is no
+redaction policy to get subtly wrong and no in-memory lifetime to reason about.
+It is also the position phase 5 already took with `gh`, which means the app has
+one answer to "where do credentials live" rather than two.
+
+The cost is real and is accepted: on a machine with no helper and no agent, a
+push fails, and this app cannot offer to fix it. That is the same shape as
+`gh auth login` - it can name what to configure and nothing more.
+
+**As built.** Every remote call runs with `GIT_TERMINAL_PROMPT=0`, `GIT_ASKPASS`
+and `SSH_ASKPASS` emptied, and `BatchMode=yes` for SSH remotes, so a prompt with
+nowhere to go becomes an immediate typed error rather than a hung pane - see
+`crates/mino-core/src/git/command/remote.rs::NO_PROMPT`. Git's own words are
+carried into that error through `crates/mino-core/src/git/redact.rs`, which
+strips userinfo out of any URL before the text is allowed anywhere near a
+message or a log line. `crates/mino-core/tests/git_redact.rs` asserts it.

@@ -8,7 +8,7 @@ use async_trait::async_trait;
 
 use crate::error::{Result, TransportError};
 use crate::shell;
-use crate::transport::{GitTransport, Transport};
+use crate::transport::{GitHubTransport, GitTransport, Transport};
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
     PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellKind, ShellProbe, StructuredOutput,
@@ -16,8 +16,8 @@ use crate::types::{
 };
 
 use super::pty::SpawnRequest;
-use super::roots::{self, RootGuard};
-use super::{fs, read, search, structured, write, LocalTransport};
+use super::roots;
+use super::{connect, fs, read, search, structured, write, LocalTransport};
 
 #[async_trait]
 impl Transport for LocalTransport {
@@ -26,30 +26,7 @@ impl Transport for LocalTransport {
     }
 
     async fn connect(&self, target: &ConnectionTarget) -> Result<ConnectionInfo> {
-        let ConnectionTarget::Local { root } = target else {
-            return Err(TransportError::invalid(
-                "the local transport only accepts a local target",
-            ));
-        };
-        let guard = RootGuard::new(root)?;
-        let display = guard.root_display();
-        let label = guard
-            .root()
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| display.clone());
-
-        *self
-            .root
-            .write()
-            .map_err(|_| TransportError::io("the connection lock was poisoned"))? = Some(guard);
-
-        Ok(ConnectionInfo {
-            id: uuid::Uuid::new_v4().to_string(),
-            kind: TransportKind::Local,
-            root: display,
-            label: format!("{label} (local)"),
-        })
+        connect::connect(self, target)
     }
 
     async fn disconnect(&self) -> Result<()> {
@@ -145,6 +122,13 @@ impl Transport for LocalTransport {
     /// `GitTransport::repository`'s question, and whether git is installed at
     /// all is answered by the first call rather than by hiding the surface.
     fn git(&self) -> Option<&dyn GitTransport> {
+        Some(self)
+    }
+
+    /// Present on the same terms as `git`: whether `gh` is installed, signed
+    /// in, and pointed at a GitHub remote are all `GitHubTransport::probe`'s
+    /// questions, and hiding the surface would answer three at once.
+    fn github(&self) -> Option<&dyn GitHubTransport> {
         Some(self)
     }
 }

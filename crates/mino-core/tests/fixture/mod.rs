@@ -14,9 +14,18 @@ use mino_core::{LocalTransport, Transport};
 /// Real git repositories, for `git_status.rs`.
 pub mod git;
 
+/// A repository with a local bare remote, for `git_remote.rs`.
+pub mod git_remote;
+
+/// A repository stopped mid-merge, for `git_conflicts.rs`.
+pub mod conflicted;
+
 /// The whole git surface asserted `Unimplemented`, for
 /// `unimplemented_transports.rs`.
 pub mod unbuilt_git;
+
+/// The same for the remote, conflict and GitHub surfaces.
+pub mod unbuilt_remote;
 
 /// A tree with a nested match, a decoy at the top level, a hidden file, and a
 /// file buried inside a directory the walk must skip.

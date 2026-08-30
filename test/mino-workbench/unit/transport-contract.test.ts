@@ -5,16 +5,22 @@ import {
   GIT_BRANCH_COMMANDS,
   GIT_COMMANDS,
   GIT_HISTORY_COMMANDS,
+  GIT_REMOTE_COMMANDS,
   GIT_STASH_COMMANDS,
+  GITHUB_COMMANDS,
   TRANSPORT_COMMANDS,
 } from "@/Types";
 import { AgentTransport } from "@/transport";
 
 import { createFakeTransport } from "../fake-transport";
 import { ALL_GIT_COMMANDS, callGit, GIT_METHODS } from "../git-contract";
+import { callGitHub, GITHUB_METHODS } from "../github-contract";
 
-/** The callable half of the interface: everything but the fields. */
-type TransportMethod = Exclude<keyof TransportClient, "kind" | "git">;
+/** The callable half of the interface: everything but the three fields. */
+type TransportMethod = Exclude<
+  keyof TransportClient,
+  "kind" | "git" | "github"
+>;
 
 /** Every method on the interface, in the order the Rust trait declares them. */
 const METHODS: TransportMethod[] = [
@@ -43,6 +49,9 @@ describe("transport client contract", () => {
     for (const method of GIT_METHODS) {
       expect(typeof client.git[method]).toBe("function");
     }
+    for (const method of GITHUB_METHODS) {
+      expect(typeof client.github[method]).toBe("function");
+    }
   });
 
   it("names one Tauri command per transport method", () => {
@@ -57,6 +66,17 @@ describe("transport client contract", () => {
     expect(GIT_HISTORY_COMMANDS.blame).toBe("git_blame");
     expect(GIT_BRANCH_COMMANDS.checkout).toBe("git_checkout");
     expect(GIT_STASH_COMMANDS.stashDrop).toBe("git_stash_drop");
+    expect(GIT_REMOTE_COMMANDS.push).toBe("git_push");
+    expect(GIT_REMOTE_COMMANDS.resolve).toBe("git_resolve");
+  });
+
+  // Two commands for five features, because the surface is two trait methods
+  // for five features: the caller picks a `GitHubQuery` variant and Rust owns
+  // the program text behind it.
+  it("names one Tauri command per GitHub method", () => {
+    expect(Object.keys(GITHUB_COMMANDS)).toHaveLength(GITHUB_METHODS.length);
+    expect(GITHUB_COMMANDS.probe).toBe("github_probe");
+    expect(GITHUB_COMMANDS.query).toBe("github_query");
   });
 });
 
@@ -89,4 +109,18 @@ describe("agent transport", () => {
       detail: { feature: ALL_GIT_COMMANDS[method], transport: "remoteAgent" },
     } satisfies TransportError);
   });
+
+  // The same trap, one notch sharper. `probe` rejects rather than resolving an
+  // `unsupported` probe: "no agent protocol yet" and "this folder has no
+  // GitHub repository" render identically - one quiet sentence - and only one
+  // of them is a bug waiting to be finished.
+  it.each(GITHUB_METHODS)(
+    "rejects github.%s with a typed unimplemented error",
+    async (method) => {
+      await expect(callGitHub(agent.github, method)).rejects.toEqual({
+        kind: "unimplemented",
+        detail: { feature: GITHUB_COMMANDS[method], transport: "remoteAgent" },
+      } satisfies TransportError);
+    },
+  );
 });

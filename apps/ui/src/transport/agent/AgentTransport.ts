@@ -4,6 +4,7 @@ import type {
   DirEntry,
   FilePayload,
   GitClient,
+  GitHubClient,
   PtyEventHandler,
   PtySession,
   PtySessionId,
@@ -23,6 +24,7 @@ import type {
 } from "@/Types";
 
 import { AgentGitClient } from "./AgentGitClient";
+import { AgentGitHubClient } from "./AgentGitHubClient";
 
 /**
  * The browser transport: talks to a `mino-agent` daemon over WebSocket.
@@ -36,6 +38,7 @@ import { AgentGitClient } from "./AgentGitClient";
 export class AgentTransport implements TransportClient {
   readonly kind: TransportKind = "remoteAgent";
   readonly git: GitClient = new AgentGitClient();
+  readonly github: GitHubClient = new AgentGitHubClient();
 
   constructor(private readonly url: string) {}
 

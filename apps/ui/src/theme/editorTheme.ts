@@ -39,6 +39,24 @@ export const editorTheme = EditorView.theme(
       fontSize: "11px",
       whiteSpace: "nowrap",
     },
+    // The review gutter. Narrow, and the one gutter marker that is a control
+    // rather than a label - so it takes the accent, which is what the rest of
+    // the app means by "you can press this".
+    ".cm-review-gutter": {
+      minWidth: "2ch",
+      paddingLeft: "2px",
+      paddingRight: "2px",
+      borderRight: `1px solid ${colorTokens.border}`,
+    },
+    ".cm-review-marker": {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      padding: "0",
+      color: colorTokens.accent,
+      fontFamily: fontStacks.mono.join(", "),
+      fontSize: "11px",
+    },
     ".cm-selectionBackground, ::selection": {
       backgroundColor: colorTokens.selection,
     },

@@ -6,6 +6,10 @@
 > A three-pane Nushell workbench - terminal, file tree, editor -
 > where every filesystem, PTY and shell call goes through one transport
 > interface with three implementations.
+>
+> All six phases of `plan/` have shipped. **The application holds no credential
+> of any kind**: `gh` owns its own, and git uses its credential helper, the SSH
+> agent or the OS keychain - see `plan/decisions.md` D3.
 
 ## Documents
 
@@ -19,6 +23,8 @@
 | [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
 | [git-module.md](git-module.md) | The git surface: status and badges, staging, discard and commit, and reading history - diff, log, show and blame |
+| [github-module.md](github-module.md) | The GitHub surface through the `gh` CLI: the credential position, checks, pull requests, issues, and opening a file on the web |
+| [remote-module.md](remote-module.md) | Fetch, pull and push; conflicts; review comments. D3's credential answer, redaction, and why a force push is a separate action |
 | [components.md](components.md) | Shared presentational components and the compound tree row |
 | [state-store.md](state-store.md) | Contexts, hooks, what is persisted and what must never be |
 | [manual-testing.md](manual-testing.md) | The QA guide: every scenario, per OS |
@@ -51,6 +57,30 @@ Viewer header Blame→ git_blame(path)       → a CodeMirror gutter (on demand)
 History            → git_log(limit, skip)  → commits, paged
 History commit     → git_show(sha)         → the files it touched
 History file       → git_commit_diff(sha)  → that commit's diff in the viewer
+
+Source control → Remote → git_fetch          → refs only; no file changes
+                        → git_pull            → one of five outcomes
+                                              ↘ conflicted → the Conflicts section
+                        → confirm (remote, branch) → git_push
+                        → Force push → its own confirmation → git_push(force)
+                                       ↘ never offered after a rejection
+Conflicted merge → git_conflicts → rows naming which kind each one is
+Row control      → git_resolve(ours | theirs | manual) → git_status
+Commit box       → disabled while any conflict remains, and says why
+
+Rail (GitHub icon) → github_probe → gh there and signed in? → the four sections
+                                  ↘ no gh / no login / not a GitHub remote
+                                    → one sentence each, then quiet
+Checks             → github_query(runs)   → the latest run for this branch
+                                          ↘ failed → github_query(runJobs) → the job named
+Pull requests      → github_query(pullRequests) → open PRs, author, check state
+PR row             → github_query(pullRequest)  → its description, read on demand
+Issues (collapsed) → github_query(issues) on open only
+New pull request   → confirm showing title, branches, draft → github_query(create) → its URL
+Viewer header GitHub → github_query(browseUrl) → the desktop opener, never this window
+PR row Review      → github_query(reviewComments) → gutter markers + a panel
+                                                  ↘ outdated → listed, never placed
+Thread reply       → github_query(replyToReviewComment) → the thread, re-read
 
 Rail icon → active view switches (or collapses, if already showing)
 Search typed → debounce → search_files(query) → walk + fuzzy rank → SearchHits

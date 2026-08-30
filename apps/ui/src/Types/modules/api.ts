@@ -10,9 +10,10 @@
  * The domain types themselves are generated from Rust (`./generated`), never
  * hand-written, so the two sides cannot drift.
  *
- * Git is the one surface that is not declared here. It is a second trait in
- * Rust (`GitTransport`), so it is a second module here - see `./git` - and
- * this file re-exports it so `@/Types` stays the one import path.
+ * Git and GitHub are the two surfaces not declared here. Each is a separate
+ * trait in Rust (`GitTransport`, `GitHubTransport`), so each is a separate
+ * module here - see `./git` and `./github` - and `@/Types` re-exports all of
+ * them so it stays the one import path.
  */
 import type {
   ConnectionInfo,
@@ -36,7 +37,9 @@ import type {
 import type { GitClient, GitCommand } from "./git";
 import type { GitBranchCommand } from "./git-branches";
 import type { GitHistoryCommand } from "./git-history";
+import type { GitRemoteCommand } from "./git-remote";
 import type { GitStashCommand } from "./git-stash";
+import type { GitHubClient, GitHubCommand } from "./github";
 
 /** Tauri command names. The only place these strings are written down. */
 export const TRANSPORT_COMMANDS = {
@@ -64,7 +67,9 @@ export type TransportCommand =
   | GitBranchCommand
   | GitCommand
   | GitHistoryCommand
-  | GitStashCommand;
+  | GitStashCommand
+  | GitRemoteCommand
+  | GitHubCommand;
 
 /** Command argument payloads, one per command that takes arguments. */
 export type ConnectArgs = { target: ConnectionTarget };
@@ -132,4 +137,12 @@ export interface TransportClient {
    * would be guessing before it had asked.
    */
   readonly git: GitClient;
+
+  /**
+   * The GitHub surface, present on the same terms and for the same reason.
+   * Whether there is a GitHub repository here has four answers rather than
+   * two, and all four come from `github.probe()` - a client that hid the
+   * property would be answering one of them before it had asked.
+   */
+  readonly github: GitHubClient;
 }

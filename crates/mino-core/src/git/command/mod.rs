@@ -32,21 +32,38 @@
 //! travels in argv. Locally that is safe; over SSH it meets the quoting rule
 //! below, which refuses an apostrophe rather than escaping it.
 //!
+//! Phase 6 adds two more, in [`remote`] and [`conflict`]:
+//!
+//! | Value | How it stays data |
+//! | --- | --- |
+//! | A remote name | Checked by [`crate::git::remote::name`], which refuses an empty name, anything readable as an option, and anything the SSH quoting rule would refuse later |
+//! | A push's branch | The refname guard again, then placed after `--` beside the remote |
+//!
+//! And one thing that is not a value at all. The three calls in [`remote`] are
+//! the only ones in this crate that leave the machine, so they are the only
+//! ones that can be **asked a question** by a server. They run with
+//! `GIT_TERMINAL_PROMPT=0` and a long timeout, because under D3 this app has
+//! no credential to answer with and a prompt with nowhere to go is a hang.
+//!
 //! The one caller-influenced value that still reaches the command line is the
 //! working directory, and that is quoted (and refused when it cannot be) by
 //! `ssh::command::quote`.
 
 mod branch;
+mod conflict;
 mod history;
 mod read;
+mod remote;
 mod stash;
 mod write;
 
 pub use branch::{branches_argv, checkout_argv, create_argv, delete_argv, BRANCH_FORMAT};
+pub use conflict::{conflicts_argv, mark_resolved_argv, take_side_argv};
 pub use history::{blame_argv, commit_diff_argv, diff_argv, log_argv, show_argv, COMMIT_FORMAT};
 pub use read::{
     branch_argv, head_commit_argv, ignored_argv, repository_argv, status_argv, version_argv,
 };
+pub use remote::{fetch_argv, pull_argv, push_argv, remotes_argv, NO_PROMPT, REMOTE_TIMEOUT_MS};
 pub use stash::{
     selector, stash_apply_argv, stash_drop_argv, stash_list_argv, stash_push_argv, STASH_FORMAT,
 };

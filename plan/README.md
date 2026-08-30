@@ -1,15 +1,19 @@
 # Git and GitHub integration - implementation plan
 
-Nineteen features, six phases, six branches. Nothing here is built yet: this
-folder is the plan and the record of what was decided, not documentation of
-working code. Module documentation lands in `docs/mino-workbench/` as each
-phase ships.
+Nineteen features, six phases, six branches. This folder is the plan and the
+record of what was decided; the documentation of what was **built** is in
+`docs/mino-workbench/`, one module doc per phase.
+
+All six phases have shipped. Where a phase deviated from its plan, the
+deviation is written down in that phase's module doc rather than by editing the
+plan - the plan is a record of what was intended, and a plan quietly rewritten
+to match the code stops being evidence of anything.
 
 ## Read these first
 
 | Document | What it covers |
 | --- | --- |
-| [decisions.md](decisions.md) | The three open decisions, with options and trade-offs. **Two of them gate phase 1.** |
+| [decisions.md](decisions.md) | The three decisions, with options and trade-offs. All resolved: D1 and D2 gated phase 1, D3 gated phase 6 |
 | [feature-index.md](feature-index.md) | All nineteen features and which phase each lands in |
 
 Then the phase you are about to build:

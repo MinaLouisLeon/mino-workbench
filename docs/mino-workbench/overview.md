@@ -27,10 +27,18 @@ apps/desktop/src-tauri  -- dispatch only ---------------+
                                             |-- LocalTransport        (working)
                                             |-- SshTransport          (russh + SFTP)
                                             `-- RemoteAgentTransport  (Unimplemented)
-                                               `- .git() -> GitTransport
-                                                    (a second trait; same three
-                                                     implementations, argv-only
-                                                     calls to the `git` binary)
+                                               |- .git() -> GitTransport
+                                               |    (a second trait; same three
+                                               |     implementations, argv-only
+                                               |     calls to the `git` binary.
+                                               |     fetch/pull/push run with
+                                               |     GIT_TERMINAL_PROMPT=0: this
+                                               |     app holds no credential)
+                                               `- .github() -> GitHubTransport
+                                                    (a third; two methods, argv-only
+                                                     calls to the `gh` CLI, which
+                                                     owns the credential - this app
+                                                     never holds a token)
 ```
 
 `mino-core` depends on neither Tauri nor a web framework, which is what lets
@@ -53,6 +61,10 @@ and their Tauri/agent counterparts are in [endpoints.md](endpoints.md).
 | `probe_shell` | Is `nu` on PATH, and what is spawned instead |
 | `git().repository` | The repository containing the root, or `None` - and where "git is missing" is reported |
 | `git().status` | The whole working tree in one call: badges, the header strip, the ignore predicate |
+| `git().fetch` / `pull` / `push` | The only calls that leave the machine. No credential is held: git uses its own helper - see `plan/decisions.md` D3 |
+| `git().conflicts` / `resolve` | What a merge could not settle, and the three ways to settle one |
+| `github().probe` | Is `gh` installed and signed in, and what repository does the remote point at - four answers, three of them quiet |
+| `github().query` | One named `gh` subcommand with `--json`, parsed. Five features share it |
 
 ## Flow
 
@@ -106,6 +118,7 @@ and the root `package.json`.
 | WebSocket (phase 2) | `tokio-tungstenite` | 0.24.0 |
 | Agent HTTP | `axum` | 0.8.1 |
 | Desktop | `tauri` / `tauri-build` / `tauri-plugin-dialog` | 2.1.1 / 2.0.4 / 2.0.4 |
+| Opening a URL | `tauri-plugin-opener` / `@tauri-apps/plugin-opener` | 2.5.4 / 2.5.4 |
 | UI | `react` / `vite` / `typescript` | 19.0.0 / 6.0.7 / 5.7.2 |
 | Terminal | `@xterm/xterm` / `@xterm/addon-fit` | 5.5.0 / 0.10.0 |
 | Editor | `@codemirror/view` / `@codemirror/state` | 6.35.3 / 6.5.0 |
@@ -115,6 +128,11 @@ and the root `package.json`.
 Nushell itself is **not** a dependency. It is driven as a process, in a PTY and
 through the non-interactive structured channel. `nu-engine`, `nu-protocol`,
 `nu-cli` and `embed-nu` are deliberately absent.
+
+Neither is **git**, and neither is the **GitHub CLI**. Both are driven as
+processes with argv arrays. `gh` in particular is a dependency this app is
+better for not replacing: it owns the GitHub credential, which is why there is
+no token here to keep. `octocrab` and its kind are deliberately absent.
 
 ## Known quirks
 

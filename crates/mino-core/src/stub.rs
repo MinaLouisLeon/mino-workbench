@@ -4,12 +4,14 @@
 //! exist and to answer with a typed `Unimplemented` error rather than a panic.
 //! That body lives here once instead of being copied into each module.
 //!
-//! `git` is the one method that cannot answer with an error, because it
-//! returns an `Option` rather than a `Result`. It returns `Some(self)`, so the
-//! *call* fails with `Unimplemented` instead of the surface disappearing -
-//! which means a type using this macro must also invoke
-//! [`crate::unimplemented_git_transport`]. Returning `None` here would be a
-//! lie: it reads as "this target has no git", not "this is not written yet".
+//! `git` and `github` are the two methods that cannot answer with an error,
+//! because they return an `Option` rather than a `Result`. Both return
+//! `Some(self)`, so the *call* fails with `Unimplemented` instead of the
+//! surface disappearing - which means a type using this macro must also invoke
+//! [`crate::unimplemented_git_transport`] and
+//! [`crate::unimplemented_github_transport`]. Returning `None` from either
+//! would be a lie: it reads as "this target has no git", not "this is not
+//! written yet".
 
 /// Generates `impl Transport` where every method returns
 /// [`crate::TransportError::Unimplemented`] naming the transport and the
@@ -107,6 +109,10 @@ macro_rules! unimplemented_transport {
             }
 
             fn git(&self) -> Option<&dyn $crate::transport::GitTransport> {
+                Some(self)
+            }
+
+            fn github(&self) -> Option<&dyn $crate::transport::GitHubTransport> {
                 Some(self)
             }
         }

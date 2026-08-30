@@ -408,3 +408,142 @@ loses work that exists nowhere else.
 | TC-264 | A detached HEAD (`git checkout <sha>`) | Open source control | The control says there is no branch, and the picker still lists branches to switch to | `git_branches` | Medium |
 | TC-265 | A fresh `git init`, no commits | Open the picker | An empty list and no error - a repository with no commits has no branches yet | `git_branches` | High |
 | TC-266 | The picker and the stash section open | Tab through both with a screen reader | Every control has a spoken name; ahead/behind are read as words, not arrows | none | High |
+
+## 19. GitHub
+
+Everything here goes through the `gh` CLI, and **this app never holds a
+token** - so the first thing to check is that a machine without `gh`, or
+without a login, is an ordinary machine with a quiet view rather than a broken
+one. TC-267 to TC-271 are the ones to run first: they are four different
+silences, and telling them apart is most of what this view does.
+
+Confirm the rest against `gh` in the terminal pane - `gh run list`,
+`gh pr list`, `gh issue list` - rather than trusting the panel.
+
+Four setups are worth preparing before you start:
+
+- **`gh` absent** - rename it, or open an SSH session on a host without it.
+- **`gh` logged out** - `gh auth logout`, then reopen the folder.
+- **a non-GitHub remote** - `git remote set-url origin https://gitlab.com/o/r.git`.
+- **no remote at all** - `git init` a fresh folder and open that.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-267 | **`gh` absent** | Open the GitHub view | One sentence saying `gh` is not installed and naming `cli.github.com`. No section, no error styling | `github_probe` only - **no `github_query` at all** | High |
+| TC-268 | **`gh` logged out** | Open the GitHub view | One sentence naming `gh auth login`, plus git-hub's own words from `gh`. It does **not** say "not a GitHub repository" | `github_probe` only | High |
+| TC-269 | **a non-GitHub remote** | Open the GitHub view | One sentence saying this folder has no GitHub repository. Rendered quietly - **not** as an alert | `github_probe` only | High |
+| TC-270 | **no remote at all**, and a plain folder that is not a repository | Open the GitHub view | The same quiet sentence as TC-269 | `github_probe` only | High |
+| TC-271 | Any of TC-267 to TC-270 | Look at the rest of the workbench | The tree still shows git badges, source control still works, the terminal is fine. Missing `gh` is a fact about `gh` | unchanged | High |
+| TC-272 | **`gh` logged out** | Run `gh auth login` in the terminal pane, then press Refresh in the GitHub header | The view fills in without reopening the folder | `github_probe`, then the sections | Medium |
+| TC-273 | A GitHub repository with a workflow | Open the GitHub view | Checks is **open** and shows the latest run for the branch you are on, with its state in words as well as a colour | one `github_query` per open section | High |
+| TC-274 | A branch whose latest run failed | Look at Checks | The failing **job** is named under the run, not just "failed" | a second `github_query` for its jobs | High |
+| TC-275 | A branch whose latest run passed | Watch the log | No jobs call at all - a green build has no job worth naming | one `github_query` | Medium |
+| TC-276 | A branch with a run in progress | Look at Checks | It reads as running, and does **not** update on its own. Nothing here polls | no repeat calls | High |
+| TC-277 | A branch with no workflow run | Look at Checks | A sentence saying so, not an empty box | one `github_query` | Medium |
+| TC-278 | A detached HEAD (`git checkout <sha>`) | Look at Checks | A sentence saying there is no branch to look at, and no call is made | none | Medium |
+| TC-279 | Connected | Collapse Checks, then press Refresh | Nothing is read for it while it is closed | no `runs` query | High |
+| TC-280 | A repository with open pull requests | Look at Pull requests | Each row shows its number, title, author, base branch and check state | one `github_query` | High |
+| TC-281 | A repository with none open | Look at Pull requests | "No open pull requests." - a sentence, not an empty list | one `github_query` | Medium |
+| TC-282 | Pull requests listed | Watch the log, then click a row | Its description is read **then**, not before, and opens under that row | one `github_query` for that number | High |
+| TC-283 | A pull request whose description contains Markdown or HTML | Open it | The exact characters are shown as text. Nothing renders as a heading, a link or an image | none | High |
+| TC-284 | An issue or pull request titled `<img src=x onerror=alert(1)>` (create one on a scratch repository) | Look at the list | The title is shown literally. No dialog appears, and no image element exists in the page | none | High |
+| TC-285 | Connected | Open Issues | It was **collapsed**, and nothing was read for it until you opened it | one `github_query` on open | High |
+| TC-286 | A repository with labelled issues | Look at Issues | Titles and label names, and an empty list reads as a sentence | one `github_query` | Medium |
+| TC-287 | Any row in any section | Click the external-link control | The address opens in your **browser**. The workbench window does not navigate anywhere | none | High |
+| TC-288 | A branch with commits not yet on the default branch | Open New pull request | It was collapsed. The base is pre-filled with the default branch of the repository | none | Medium |
+| TC-289 | The form filled in | Click "Create pull request" | A confirmation appears showing the **title, the branch pair and the draft state**. Nothing has been created - confirm with `gh pr list` | none yet | High |
+| TC-290 | The confirmation showing | Click Cancel | Nothing was created, and everything typed is still in the form | none | High |
+| TC-291 | The confirmation showing | Click "Create it" | It is created, and the **URL** appears with a control to open it. Confirm with `gh pr list` | a create query, then a re-read | High |
+| TC-292 | A description containing an apostrophe and several lines | Create the pull request | The body arrives on GitHub exactly as typed - it travels on stdin, not in a command | create | High |
+| TC-293 | On the default branch already | Try to create a pull request | The refusal from `gh` is shown as a sentence, and everything typed is kept | create failing | High |
+| TC-294 | The form open with an empty title | Look at the button | Disabled. A pull request with no title is not one anybody meant | none | Medium |
+| TC-295 | A file open in the viewer, in a pushed GitHub repository | Put the cursor on line 20 and click "GitHub" in the viewer header | The file opens **in your browser** at line 20, on the branch you are on | a browse query | High |
+| TC-296 | A folder with no GitHub repository, a file open | Look at the viewer header | There is no GitHub control at all - not a disabled one | none | Medium |
+| TC-297 | A file that has never been pushed | Click "GitHub" | A sentence saying GitHub could not place it. Nothing opens | browse failing | Medium |
+| TC-298 | **security** - connected | Try a browse for a path outside the folder (via the transport) | Refused with `pathEscapesRoot`, before `gh` runs | refused | High |
+| TC-299 | **security** - connected | Try a `Runs` query with a branch of `--upload-pack=touch pwned` (via the transport) | Refused with a sentence; confirm no file named `pwned` was created | refused before `gh` ran | High |
+| TC-300 | **security** - connected | Watch the logs and browser storage through a full session | No GitHub token appears anywhere: not in a log line, not in local storage, not in an error message. There is none to appear | none | High |
+| TC-301 | **SSH session** on a remote host with `gh` signed in as another account | Open the GitHub view | It reads the **remote** account's GitHub. The login on this machine is not involved | remote `gh` | Medium |
+| TC-302 | **SSH session** on a host without `gh` | Open the GitHub view | The same "not installed" sentence as TC-267, not an authentication error | `github_probe` | High |
+| TC-303 | **SSH session** | Create a pull request whose title contains an apostrophe | Refused with a sentence - the documented limit of the SSH transport. The same title works locally | create refused | Medium |
+| TC-304 | Two branches with different CI results | Switch branch in source control | Checks re-reads for the new branch. The pull request and issue lists are repository-wide and need no second call to be right | one `runs` query | High |
+| TC-305 | Any section open, a pull request selected | Press Refresh | The lists update **and the pane does not blank**: the section stays open and the selected pull request stays open | one query per open section | High |
+
+## 20. Remotes, conflicts and review
+
+The last phase, and the one with the most that cannot be undone. Three groups
+of cases, in the order they are worth running:
+
+**The credential position (TC-306 to TC-311).** `plan/decisions.md` D3 chose to
+delegate to git's own helper, the SSH agent and the OS keychain, so this app
+holds nothing. Two things have to be true for that to be safe: a machine with
+no helper must **fail rather than hang**, and no token must ever appear in a
+message, a result or a log.
+
+**Push (TC-320 to TC-329).** The only control in the application that can
+destroy work belonging to somebody else. Read TC-325 to TC-328 before running
+anything: they are about the force push.
+
+**Conflicts and review (TC-330 onwards).**
+
+Set up first, because most of this needs a remote and none of it needs a
+network:
+
+```
+mkdir -p /tmp/qa && cd /tmp/qa
+git init --bare origin.git
+git clone origin.git work && cd work
+git commit --allow-empty -m first && git push -u origin main
+git clone ../origin.git ../other          # the "somebody else" clone
+```
+
+Open `work` in the workbench. Make the remote move by committing and pushing
+from `../other`.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-306 | Connected to a repository with a remote | Open source control | The Remote section is **collapsed**, and nothing was read for it | no `git_remotes` | Medium |
+| TC-307 | The section collapsed | Expand it | The remote's name appears; the list is read **then** | one `git_remotes` | Medium |
+| TC-308 | A repository with no remote (`git init` a fresh folder) | Expand Remote | One sentence saying there is nowhere to fetch from or push to. No buttons that do nothing | `git_remotes` | High |
+| TC-309 | **security** - an HTTPS remote with a token in its URL (`git remote set-url origin https://user:ghp_fake@github.com/o/r.git`) | Expand Remote | The URL shown, if any, is masked - `https://***@github.com/...`. The token appears nowhere on screen | `git_remotes` | High |
+| TC-310 | **security** - the same repository | Fetch, and let it fail | The error names the host but **not** the token. Check the log output too | `git_fetch` failing | High |
+| TC-311 | **security** - **no credential helper and no agent** (`git config --global --unset credential.helper`, `ssh-add -D`), an HTTPS remote needing auth | Push | It fails **within a few seconds** with a sentence naming a credential helper and the SSH agent. It does **not** hang, and no password box appears from this app | `git_push` failing | High |
+| TC-312 | An SSH remote and a working agent | Fetch | It works, and this app never asked for anything | `git_fetch` | Medium |
+| TC-313 | The remote has a commit this clone does not | Fetch | "Fetched from origin", and **no file changed** - confirm with `git status` and by looking at the tree | `git_fetch` | High |
+| TC-314 | Just fetched, behind by one | Look at the workbench header | The behind count is now right, where before it was stale | `git_status` | Medium |
+| TC-315 | Nothing to bring down | Pull | "Already up to date" - a sentence, not silence | `git_pull` | Medium |
+| TC-316 | Behind by one, clean tree | Pull | "Fast-forwarded from origin", and the tree, the viewer and search all re-read | `git_pull`, then `list_dir` / `read_file` | High |
+| TC-317 | **data loss** - an uncommitted edit in the working tree | Pull | Refused **before anything is sent**, with a sentence naming commit and stash. The edit is exactly as you left it - confirm with `git status` | `git_pull` refused | High |
+| TC-318 | The same, with "Rebase instead of merging" ticked | Pull | Still refused. The dirty-tree rule does not depend on the strategy | refused | Medium |
+| TC-319 | Diverged histories, clean tree, "Rebase" ticked | Pull | "Rebased onto origin", and `git log` shows your commits on top rather than a merge commit | `git_pull` | Medium |
+| TC-320 | A local commit not on the remote | Press Push | A confirmation appears naming **the branch and the remote**. Nothing has been pushed - confirm with `git log origin/main` | none yet | High |
+| TC-321 | The confirmation showing | Cancel | Nothing was pushed, and the section is exactly as it was | none | High |
+| TC-322 | The confirmation showing | Confirm | "Pushed main to origin", and `../other` can pull it | `git_push` | High |
+| TC-323 | Nothing to push | Push and confirm | "Everything was already there" | `git_push` | Medium |
+| TC-324 | The remote has a commit you do not, and you have one it does not | Push and confirm | Refused, with a sentence saying **nothing was pushed** and to fetch and pull first. Confirm the remote is untouched from `../other` | `git_push` failing | High |
+| TC-325 | **data loss** - immediately after TC-324 | Look at the whole panel | There is **no offer to force**. The force control is where it always was, and nothing has moved next to the error | none | High |
+| TC-326 | **data loss** - a branch nobody else is using | Press "Force push" | A confirmation appears saying the remote branch **will be replaced**, that commits there will be gone **including anyone else's**, and that git will still refuse if the remote moved since this repository last looked | none yet | High |
+| TC-327 | **data loss** - the remote moved since your last fetch, force push confirmed | Confirm | It is **refused**, not obeyed. That is `--force-with-lease` protecting work you have never seen. Confirm from `../other` that its commit is still there | `git_push` failing | High |
+| TC-328 | **data loss** - fetch first, then force push | Confirm | It replaces the remote branch. `../other` now needs to reset | `git_push` with force | High |
+| TC-329 | **security** - a detached HEAD (`git checkout --detach`) | Push | A sentence saying there is no branch checked out. Nothing is sent | refused | Medium |
+| TC-330 | A merge that conflicts (`git merge` a branch that changed the same line) | Look at source control | A **Conflicts** section above everything else, listing each path, and it did not have to be expanded | `git_conflicts` | High |
+| TC-331 | The same | Read a row | It says which **kind** of conflict it is - "both sides changed this", "the other side deleted this" - not just that it is conflicted | none | High |
+| TC-332 | The same | Look at the commit box | Disabled, saying to settle the conflicts first. Not "stage something" | none | High |
+| TC-333 | A conflicted file | Click "Keep this branch's version" | The file on disk is your side, the row is gone, and `git status` agrees it is staged | `git_resolve` with `ours` | High |
+| TC-334 | Another conflicted file | Click "Keep the incoming version" | The file is their side; `git status` agrees | `git_resolve` with `theirs` | High |
+| TC-335 | A conflicted file | Click its name | It opens in the viewer **with the conflict markers in it** | `read_file` | High |
+| TC-336 | The same file open | Remove the markers, save, then click "Mark as settled" | The file keeps **exactly what you saved** - nothing overwrote it - and the row is gone | `write_file`, `git_resolve` with `manual` | High |
+| TC-337 | A both-deleted conflict | Look at its row | There is no "Mark as settled" control: there is nothing to open and edit | none | Medium |
+| TC-338 | Every conflict settled | Look at the commit box | Enabled, and committing works | `git_commit` | High |
+| TC-339 | A conflict settled while the file was open in the viewer | Look at the viewer | It re-read - all three resolutions change what is on disk or what git makes of it | `read_file` | Medium |
+| TC-340 | A GitHub repository with an open pull request carrying review comments | Open the GitHub view | Nothing about review appears yet. The editor is untouched | no review query | High |
+| TC-341 | The same | Press "Review" on a pull request row | The threads are read **then**, and a panel appears under the editor | one review query | High |
+| TC-342 | Reviewing, with a commented file open | Look at the gutter | A marker sits beside each commented line, and pressing it brings the panel into view | none | Medium |
+| TC-343 | A thread GitHub reports as outdated (push a commit that rewrites the commented lines, then reload) | Look at the panel | It is listed, marked **Outdated**, with a sentence saying GitHub no longer has a line for it - and it is **not** drawn in the gutter against any line | one review query | High |
+| TC-344 | Reviewing, a file with no comments open | Look at the panel | "No review comments on this file." - not an empty box | none | Medium |
+| TC-345 | A thread showing | Type a reply and send it | It appears on GitHub - confirm in a browser - and the thread here shows it | a reply query, then a re-read | High |
+| TC-346 | A reply containing an apostrophe and a newline | Send it | It arrives exactly as typed. The body travels as JSON on stdin | reply | High |
+| TC-347 | A comment body containing `<img src=x onerror=alert(1)>` | Look at the panel | The characters are shown literally. No dialog, and no image element in the page | none | High |
+| TC-348 | Reviewing | Press "Review" on the same row again | The panel and the gutter markers go away | none | Medium |
+| TC-349 | **SSH session** on a remote repository with a remote of its own | Fetch and push | Both run on the **remote host**, using that machine's credential helper. Nothing about this machine's git is involved | remote `git` | Medium |
+| TC-350 | **SSH session** without a credential on the remote host | Push | The same "configure a helper" sentence as TC-311, naming the fix on the remote machine. It does not hang | failing | High |

@@ -6,7 +6,7 @@ import { useGitStatusContext } from "@/features/git/context/GitStatusContext";
 import { useSelection } from "@/features/workbench/context/SelectionContext";
 import { describeFailure } from "@/lib/transportError";
 
-import { groupEntries } from "../grouping";
+import { countConflicts, entryFor, groupEntries } from "../grouping";
 import { SOURCE_CONTROL_COPY } from "../messages";
 import type { ChangeRowModel, SourceControlState } from "../types";
 import { useCommitBox } from "./useCommitBox";
@@ -63,13 +63,14 @@ export function useSourceControl(): SourceControlState {
     },
     [refresh],
   );
-
-  const stageAll = useCallback(() => run(() => transport.git.stage([])), [run, transport]);
+  const stageAll = useCallback(
+    () => run(() => transport.git.stage([])),
+    [run, transport],
+  );
   const unstageAll = useCallback(
     () => run(() => transport.git.unstage([])),
     [run, transport],
   );
-
   const onToggleStaged = useCallback(
     (row: ChangeRowModel) => {
       const paths = [row.entry.path];
@@ -82,21 +83,11 @@ export function useSourceControl(): SourceControlState {
     [run, transport],
   );
 
+  // The same selection concept the tree and search results use. A deleted file
+  // still opens; the viewer reports that it is gone, which is more useful than
+  // a row that does nothing.
   const onOpen = useCallback(
-    (row: ChangeRowModel) => {
-      // The same selection concept the tree and search results use. A deleted
-      // file still opens; the viewer reports that it is gone, which is more
-      // useful than a row that does nothing.
-      select({
-        path: row.entry.path,
-        name: row.name,
-        kind: "file",
-        size: 0,
-        modifiedMs: null,
-        readonly: false,
-        hidden: row.name.startsWith("."),
-      });
-    },
+    (row: ChangeRowModel) => select(entryFor(row)),
     [select],
   );
 
@@ -123,6 +114,10 @@ export function useSourceControl(): SourceControlState {
 
   const commitState = useCommitBox({
     stagedCount: staged.length,
+    // Counted off the status the panel already holds rather than through a
+    // call of its own: a conflicted path is a status entry, and the commit box
+    // needs the count on every render.
+    conflictCount: countConflicts(entries),
     busy,
     run,
   });

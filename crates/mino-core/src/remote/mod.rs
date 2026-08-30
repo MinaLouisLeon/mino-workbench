@@ -14,7 +14,7 @@
 //! docs/mino-workbench/endpoints.md.
 
 use crate::types::TransportKind;
-use crate::{unimplemented_git_transport, unimplemented_transport};
+use crate::{unimplemented_git_transport, unimplemented_github_transport, unimplemented_transport};
 
 pub struct RemoteAgentTransport {
     url: std::sync::RwLock<Option<String>>,
@@ -57,3 +57,4 @@ impl RemoteAgentTransport {
 
 unimplemented_transport!(RemoteAgentTransport, TransportKind::RemoteAgent);
 unimplemented_git_transport!(RemoteAgentTransport, TransportKind::RemoteAgent);
+unimplemented_github_transport!(RemoteAgentTransport, TransportKind::RemoteAgent);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { groupEntries, isUntracked } from "@/features/source-control/grouping";
 
-import { makeGitEntry } from "../fake-git";
+import { makeGitEntry } from "../fake-git-rows";
 
 /** The rows of one group, by repository-relative path. */
 function paths(entries: Parameters<typeof groupEntries>[0], id: string) {

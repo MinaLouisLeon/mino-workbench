@@ -1,7 +1,8 @@
-import { FolderTree, GitBranch, Search } from "lucide-react";
+import { FolderTree, GitBranch, Github, Search } from "lucide-react";
 
 import { FileTreePane } from "@/features/file-tree/components/FileTreePane";
 import { SearchPane } from "@/features/search/components/SearchPane";
+import { GitHubPane } from "@/features/github/components/GitHubPane";
 import { SourceControlPane } from "@/features/source-control/components/SourceControlPane";
 
 import { SIDEBAR_COPY } from "./messages";
@@ -36,6 +37,14 @@ export const SIDEBAR_VIEWS: readonly SidebarView[] = [
     label: SIDEBAR_COPY.sourceControl,
     icon: GitBranch,
     Panel: SourceControlPane,
+  },
+  // Below source control, because what is happening locally comes before what
+  // is happening on a server: you commit before you look at a pull request.
+  {
+    id: "github",
+    label: SIDEBAR_COPY.github,
+    icon: Github,
+    Panel: GitHubPane,
   },
 ];
 

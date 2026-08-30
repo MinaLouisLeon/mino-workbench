@@ -30,7 +30,15 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | file-tree | `FileTreePane` / `TreeRows` / `TreeRow` / `TreeRowParts` | Compound row, see the flow doc |
 | git | `GitBranchStatus` | Header strip: branch, dirty marker, ahead/behind. Takes no props - reads `GitStatusContext` |
 | source-control | `SourceControlPane` / `ChangeGroup` / `ChangeRow` / `ChangeRowParts` / `CommitBox` / `DiscardConfirm` / `HistorySection` | The third rail view. `DiscardConfirm` is an `alertdialog` whose confirm button names the consequence |
+| source-control | `BranchControl` / `BranchPicker` / `BranchRow` / `CheckoutConfirm` | The branch a checkout would leave. `CheckoutConfirm` warns before stranding an unsaved draft - git knows nothing about a buffer that was never written |
+| source-control | `StashSection` / `StashRow` / `StashDropConfirm` | Collapsed by default and read on open. A drop is destructive and asks first |
+| source-control | `RemoteSection` / `PushConfirm` | Fetch, pull and push, laid out left to right by what each can lose. `PushConfirm` serves both push and force push - **one prompt, one path to the transport**, so a force cannot be reached by answering the ordinary confirmation |
+| source-control | `ConflictSection` / `ConflictRow` | Above everything, and neither collapsible nor read on demand: a conflict blocks the commit box, so a reader who had to open a section to find out why would be left with a dead button. Renders nothing when nothing is conflicted |
 | viewer | `ViewerModeToggle` / `DiffView` / `DiffLines` | File / Diff / Blame. The toggle takes no props - it reads `ViewerModeContext`, which the history list also writes to |
+| github | `GitHubPane` / `Section` / `ChecksSection` / `PullRequestSection` / `PullRequestRow` / `IssuesSection` | The fourth rail view. `Section` is one component for all four because a **closed section makes no network call**, so four copies would be four places to get that wrong |
+| github | `NewPullRequest` / `CreatePrConfirm` | The one GitHub surface that writes. Submitting **asks**; only the confirmation creates |
+| github | `CheckState` / `ExternalLink` | A shape *and* a colour for every check state. `ExternalLink` is a **button, not an anchor**: every URL came from outside, and the webview never navigates |
+| github | `OpenOnGitHub` / `ReviewForFile` / `ReviewPanel` / `ReviewThread` | #19 and #17 in the viewer. Both render nothing at all when they do not apply, rather than appearing disabled |
 | sidebar | `ActivityBar` / `ActivityBarButton` | The icon rail; one button per entry in `views.ts` |
 | sidebar | `SidebarPanel` | Renders every view, hiding the inactive ones rather than unmounting them |
 | search | `SearchPane` / `SearchField` / `SearchResults` | Presentational; wiring in `useFileSearch` |

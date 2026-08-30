@@ -11,6 +11,7 @@
 
 pub mod error;
 pub mod git;
+pub mod github;
 pub mod local;
 pub mod remote;
 pub mod search;
@@ -19,6 +20,8 @@ pub mod ssh;
 pub mod stub;
 pub mod stub_git;
 pub mod stub_git_refs;
+pub mod stub_git_remote;
+pub mod stub_github;
 pub mod transport;
 pub mod types;
 
@@ -26,7 +29,10 @@ pub use error::{Result, TransportError};
 pub use local::LocalTransport;
 pub use remote::RemoteAgentTransport;
 pub use ssh::SshTransport;
-pub use transport::{GitBranchTransport, GitStashTransport, GitTransport, Transport};
+pub use transport::{
+    GitBranchTransport, GitConflictTransport, GitHubTransport, GitRemoteTransport,
+    GitStashTransport, GitTransport, Transport,
+};
 pub use types::*;
 
 /// Builds the transport that serves a target. The only place a transport is

@@ -9,6 +9,7 @@ export const SIDEBAR_COPY = {
   files: "Files",
   search: "Search",
   sourceControl: "Source control",
+  github: "GitHub",
 
   /** Tooltip suffix on the active view's button, which toggles the panel. */
   hidePanel: "Hide",
