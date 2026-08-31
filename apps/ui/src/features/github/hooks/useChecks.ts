@@ -22,13 +22,17 @@ import { useGitHubQuery } from "./useGitHubQuery";
  * double the cost of the common case to answer a question nobody asked.
  */
 export function useChecks(active: boolean): ChecksState {
-  const { branch, nonce } = useGitHubContext();
+  const { branch, branchKnown, nonce } = useGitHubContext();
   const [open, setOpen] = useState(true);
 
   // One run: `gh run list` answers newest first, so the latest is the only one
   // this section shows and the only one worth paying for.
+  //
+  // `branchKnown` guards the read as well as the sentence below it: asking for
+  // runs on a branch that has not been read yet would be asking about the
+  // wrong branch, and the answer would look like an answer.
   const request: GitHubQuery | null =
-    active && open && branch !== null
+    active && open && branchKnown && branch !== null
       ? { kind: "runs", detail: { branch, limit: 1 } }
       : null;
   const runs = useGitHubQuery(request, "runs", nonce);
@@ -44,7 +48,10 @@ export function useChecks(active: boolean): ChecksState {
     open,
     toggle: useCallback(() => setOpen((current) => !current), []),
     run,
-    loading: runs.loading,
+    // Reading the branch is part of loading this section: until git has
+    // answered there is nothing to ask about, and saying so is truer than
+    // showing an empty state.
+    loading: runs.loading || !branchKnown,
     // The run's failure first: a jobs call that failed is a detail about a
     // run the reader can already see.
     error: runs.error ?? jobs.error,

@@ -21,7 +21,7 @@ import { Section } from "./Section";
  */
 export function ChecksSection({ active }: { active: boolean }) {
   const checks = useChecks(active);
-  const { branch } = useGitHubContext();
+  const { branch, branchKnown } = useGitHubContext();
 
   return (
     <Section
@@ -40,7 +40,11 @@ export function ChecksSection({ active }: { active: boolean }) {
     >
       {checks.error ? (
         <p className="px-2 py-1 text-xs text-danger">{checks.error}</p>
-      ) : branch === null ? (
+      ) : branchKnown && branch === null ? (
+        // Only once git has answered. `branch` is also null in the moment
+        // before it does, and saying "there is no branch checked out" about a
+        // branch that was simply not read yet is a false statement the reader
+        // has no way to question.
         <p className="px-2 py-1 text-xs text-textFaint">
           {CHECKS_COPY.noBranch}
         </p>
