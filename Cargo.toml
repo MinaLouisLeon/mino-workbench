@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/mino-core", "crates/mino-agent", "apps/desktop/src-tauri"]
 
 [workspace.package]
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 # 1.85 is the floor edition 2024 imposes: transitive crates (zeroize by way
 # of russh) are published as edition 2024 and will not parse below it.
