@@ -1,7 +1,7 @@
 {
   "name": "mino-workbench",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "Three-pane Nushell workbench: React + TypeScript over a shared Rust core.",
   "workspaces": [
