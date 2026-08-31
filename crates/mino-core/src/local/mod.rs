@@ -29,6 +29,7 @@ mod git_run;
 mod git_stash;
 mod github;
 mod github_run;
+mod no_window;
 mod pipelines;
 mod pty;
 mod pty_spawn;

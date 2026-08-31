@@ -26,6 +26,7 @@ use tokio::process::Command;
 
 use crate::error::{Result, TransportError};
 use crate::git::GitOutput;
+use crate::local::no_window::hide_console;
 
 /// Runs `program` with `argv` in `cwd`, optionally writing `input` to its
 /// standard input, and collects its exit code and both streams.
@@ -57,6 +58,9 @@ pub async fn with_env(
     env: &[(&str, &str)],
 ) -> Result<GitOutput> {
     let mut command = Command::new(program);
+    // Before anything else, so no path through this function can spawn a
+    // console window over the workbench - see `no_window`.
+    hide_console(&mut command);
     for (key, value) in env {
         command.env(key, value);
     }

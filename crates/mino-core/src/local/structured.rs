@@ -10,6 +10,7 @@ use std::process::Stdio;
 use tokio::process::Command;
 
 use crate::error::{Result, TransportError};
+use crate::local::no_window::hide_console;
 use crate::types::{StructuredOutput, StructuredRequest};
 
 pub const DEFAULT_TIMEOUT_MS: u64 = 10_000;
@@ -26,6 +27,9 @@ pub async fn run(nu_path: &str, request: &StructuredRequest) -> Result<Structure
         .min(MAX_TIMEOUT_MS);
 
     let mut command = Command::new(nu_path);
+    // The tree asks this once per folder it reads, so without the flag one
+    // expanded directory is one console window - see `no_window`.
+    hide_console(&mut command);
     // The pipeline is a single argument, never a shell line, and caller
     // values are bound as env vars below - so they cannot become syntax.
     command
