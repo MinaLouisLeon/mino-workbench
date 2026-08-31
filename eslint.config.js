@@ -7,7 +7,14 @@ import reactHooks from "eslint-plugin-react-hooks";
 // push. Keep the rule set small and the failures meaningful.
 export default [
   {
-    ignores: ["**/dist/**", "**/target/**", "**/node_modules/**", "**/generated/**"],
+    ignores: [
+      "**/dist/**",
+      "**/target/**",
+      "**/node_modules/**",
+      "**/generated/**",
+      // Next.js build output for apps/site.
+      "**/.next/**",
+    ],
   },
   js.configs.recommended,
   {

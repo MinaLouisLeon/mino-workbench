@@ -20,6 +20,19 @@ name: Release (Windows)
 on:
   push:
     branches: [main]
+    # The marketing site and the documentation ride in this repository but
+    # are not in the installer, and Vercel deploys the site itself. Without
+    # this, a typo fixed on the landing page would bump the app's version,
+    # rebuild the .exe and publish a release containing no change at all.
+    #
+    # A push only skips when *every* file it touched matches. A merge that
+    # moves both the site and the app still releases, which is what should
+    # happen.
+    paths-ignore:
+      - "apps/site/**"
+      - "docs/**"
+      - "plan/**"
+      - "**/*.md"
   workflow_dispatch:
     inputs:
       bump:

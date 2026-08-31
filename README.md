@@ -35,6 +35,7 @@ shapes rather than fitted to one.
 | `crates/mino-agent` | Standalone daemon serving the transport surface over WebSocket + HTTP, loopback only |
 | `apps/desktop` | Tauri v2 app; its Rust side is command dispatch and nothing else |
 | `apps/ui` | React + TypeScript + Vite: the three panes and the transport client |
+| `apps/site` | The marketing site: Next.js, Tailwind and shadcn/ui, deployed to Vercel |
 
 Rust owns the domain types; TypeScript is generated from them with `ts-rs`
 (`npm run gen:types`) so the two cannot drift.
@@ -59,6 +60,7 @@ too but has three sharp edges — see
 | `npm run desktop` | The desktop app |
 | `npm run dev` | The UI alone in a browser, against the agent transport |
 | `npm run agent` | The daemon on `127.0.0.1:8731` |
+| `npm run site` | The marketing site on `localhost:3000` |
 | `npm test` | Vitest |
 | `npm run test:e2e` | Playwright |
 | `npm run gen:types` | Regenerate the TypeScript domain types from Rust |
@@ -118,6 +120,23 @@ it is waiting on.
   stdin as JSON remotely.
 - Saving refuses to overwrite a file that changed since it was opened.
 - Local storage holds layout preferences and nothing else.
+
+## Website
+
+The site at `apps/site` is a Next.js App Router page deployed to Vercel from
+this repository, with its Vercel root directory set to `apps/site`.
+
+It has no palette of its own. `apps/ui/src/theme/tokens.ts` stays the only
+file here allowed to hold a raw colour value, and `npm run gen:theme` carries
+those values into the one place a TypeScript import cannot reach - Tailwind
+v4's theme, which is CSS read at build time. The site's `predev` and
+`prebuild` run it, so the two cannot drift.
+
+Pushing site-only changes to `main` does not cut a release: the release
+workflow ignores `apps/site/**`, `docs/**`, `plan/**` and every `.md`.
+
+Settings, the shadcn/ui role mapping and the rest are in
+[`docs/mino-workbench/site-module.md`](docs/mino-workbench/site-module.md).
 
 ## Releases
 

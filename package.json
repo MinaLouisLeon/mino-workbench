@@ -5,16 +5,20 @@
   "type": "module",
   "description": "Three-pane Nushell workbench: React + TypeScript over a shared Rust core.",
   "workspaces": [
-    "apps/ui"
+    "apps/ui",
+    "apps/site"
   ],
   "scripts": {
     "prepare": "node scripts/install-hooks.mjs",
     "dev": "npm run dev --workspace @mino/ui",
+    "site": "npm run dev --workspace @mino/site",
+    "site:build": "npm run build --workspace @mino/site",
     "build": "npm run build --workspace @mino/ui",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
     "agent": "cargo run -p mino-agent",
     "gen:types": "node scripts/gen-types.mjs",
+    "gen:theme": "node scripts/gen-site-theme.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -30,8 +34,8 @@
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
     "@types/node": "22.10.2",
-    "@types/react": "19.0.2",
-    "@types/react-dom": "19.0.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
     "@typescript-eslint/eslint-plugin": "8.18.2",
     "@typescript-eslint/parser": "8.18.2",
     "@vitejs/plugin-react": "4.3.4",

@@ -8,6 +8,12 @@ dist
 dist-ssr
 .vite
 
+# Next.js (apps/site)
+.next
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+
 # Tauri
 apps/desktop/src-tauri/gen
 
