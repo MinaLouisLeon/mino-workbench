@@ -1,5 +1,6 @@
 import { relativeTime } from "@/lib/relativeTime";
 
+import { useIssueMenu } from "../hooks/useGitHubMenus";
 import { useIssues } from "../hooks/useIssues";
 import { ISSUES_COPY } from "../messages";
 import { ExternalLink } from "./ExternalLink";
@@ -20,6 +21,7 @@ import { Section, SectionCount } from "./Section";
  */
 export function IssuesSection({ active }: { active: boolean }) {
   const issues = useIssues(active);
+  const onIssueMenu = useIssueMenu(issues.issues);
 
   return (
     <Section
@@ -42,6 +44,8 @@ export function IssuesSection({ active }: { active: boolean }) {
           {issues.issues.map((issue) => (
             <li
               key={issue.number}
+              data-number={issue.number}
+              onContextMenu={onIssueMenu}
               className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-surfaceHover"
             >
               <span className="min-w-0 flex-1">

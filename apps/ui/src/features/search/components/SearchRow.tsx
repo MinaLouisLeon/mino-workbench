@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useSearchRow } from "../context/SearchRowContext";
+import { useSearchRowMenu } from "../hooks/useSearchRowMenu";
 import {
   SearchRowDirectory,
   SearchRowIcon,
@@ -17,6 +18,7 @@ import {
  */
 function SearchRowRoot({ children }: { children: ReactNode }) {
   const { hit, selected, onActivate } = useSearchRow();
+  const onContextMenu = useSearchRowMenu();
 
   return (
     <button
@@ -25,6 +27,7 @@ function SearchRowRoot({ children }: { children: ReactNode }) {
       aria-selected={selected}
       title={hit.entry.path}
       onClick={() => onActivate(hit)}
+      onContextMenu={onContextMenu}
       className={`flex w-full items-center gap-1.5 px-2 py-0.5 text-left text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong ${
         selected ? "bg-accentMuted" : "hover:bg-surfaceHover"
       }`}

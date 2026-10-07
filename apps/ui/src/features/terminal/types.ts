@@ -19,6 +19,9 @@ export interface TerminalInstanceProps {
   /** False for the last terminal: the pane always keeps one. */
   closable: boolean;
   onClose: () => void;
+  /** False at the pane's ceiling; the menu says why. */
+  canSplit: boolean;
+  onSplit: () => void;
 }
 
 export interface TerminalSplitHandleProps {

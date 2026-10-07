@@ -17,6 +17,7 @@ import type {
 } from "@/Types";
 
 import { makeEntry } from "./fake-entries";
+import { createFakeEntryChanges } from "./fake-entry-changes";
 import { createFakeGitSurface } from "./fake-git";
 import { createFakeGitHub } from "./fake-github";
 import { searchFiles } from "./fake-search";
@@ -64,6 +65,7 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
   // what the GitHub tests assert is what was asked for, and when.
   const github = createFakeGitHub(options);
   const git = createFakeGitSurface(options);
+  const entries = createFakeEntryChanges(options);
 
   const client: TransportClient = {
     kind: "local",
@@ -101,6 +103,7 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
         modifiedMs: (existing?.size ?? 0) + 1,
       });
     }),
+    changeEntry: entries.changeEntry,
     readFile: vi.fn(async (path: string): Promise<FilePayload> => {
       const failure = options.failures?.[`readFile:${path}`];
       if (failure) throw failure;
@@ -112,10 +115,8 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
     writePty: vi.fn(async () => undefined),
     resizePty: vi.fn(async () => undefined),
     closePty: vi.fn(async () => undefined),
-    runStructured: vi.fn(
-      async (): Promise<StructuredOutput> =>
-        options.structured ?? { value: [], stderr: "" },
-    ),
+    runStructured: vi.fn(async (): Promise<StructuredOutput> =>
+      options.structured ?? { value: [], stderr: "" }),
     probeShell: vi.fn(async () => options.shellProbe ?? NU_PRESENT_PROBE),
     git: git.client,
     github: github.client,
@@ -136,6 +137,7 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
     listenerCount: () => listeners.size,
     /** What `writeFile` was handed, by path. */
     saved,
+    changes: entries.changes,
     // What the mutating calls were *asked for*. Half of what phases 5 and 6
     // assert is here rather than in the rendering: an unconfirmed push and a
     // collapsed section that fetched are both invisible to a DOM query.

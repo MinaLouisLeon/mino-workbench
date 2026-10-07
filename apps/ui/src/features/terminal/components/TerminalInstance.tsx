@@ -1,6 +1,7 @@
 import { Notice } from "@/components/ui";
 import { basename } from "@/lib/path";
 
+import { useTerminalMenu } from "../hooks/useTerminalMenu";
 import { useTerminalSession } from "../hooks/useTerminalSession";
 import { TERMINAL_COPY } from "../messages";
 import type { TerminalInstanceProps } from "../types";
@@ -12,8 +13,10 @@ import type { TerminalInstanceProps } from "../types";
  * is a second instance of this component and nothing has to be shared between
  * them. Unmounting one closes exactly one session.
  */
-export function TerminalInstance({ closable, onClose }: TerminalInstanceProps) {
-  const { container, session, error, exit, fallbackShell } = useTerminalSession();
+export function TerminalInstance(props: TerminalInstanceProps) {
+  const { closable, onClose } = props;
+  const { container, terminal, session, error, exit, fallbackShell } = useTerminalSession();
+  const onContextMenu = useTerminalMenu(terminal, props);
   const hasNotice = Boolean(fallbackShell || error || exit);
 
   return (
@@ -57,6 +60,7 @@ export function TerminalInstance({ closable, onClose }: TerminalInstanceProps) {
 
       <div
         ref={container}
+        onContextMenu={onContextMenu}
         aria-label={TERMINAL_COPY.terminalLabel}
         className="min-h-0 flex-1 p-1"
       />

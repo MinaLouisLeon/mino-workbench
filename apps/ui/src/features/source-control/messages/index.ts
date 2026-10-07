@@ -11,5 +11,6 @@
  */
 export * from "./branches";
 export * from "./changes";
+export * from "./menus";
 export * from "./remote";
 export * from "./stash";

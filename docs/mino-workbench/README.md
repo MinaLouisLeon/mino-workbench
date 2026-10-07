@@ -19,7 +19,8 @@
 | [endpoints.md](endpoints.md) | The transport interface (trait method · Tauri command · agent frame) and the agent's HTTP/WS surface |
 | [transport-layer-module.md](transport-layer-module.md) | Connecting, the three implementations, the path guard, the structured Nushell channel |
 | [terminal-pane-module.md](terminal-pane-module.md) | PTY lifecycle, resize in both directions, the `nu`-missing fallback |
-| [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors |
+| [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors, and creating, renaming and deleting entries |
+| [context-menu-module.md](context-menu-module.md) | Right-click everywhere: why the browser's menu never opens, and what each area's own menu offers |
 | [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
 | [git-module.md](git-module.md) | The git surface: status and badges, staging, discard and commit, and reading history - diff, log, show and blame |

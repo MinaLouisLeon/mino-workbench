@@ -9,6 +9,7 @@
 // transport method returns `TransportError::Unimplemented`, it never panics.
 #![deny(clippy::todo, clippy::unimplemented)]
 
+pub mod entries;
 pub mod error;
 pub mod git;
 pub mod github;

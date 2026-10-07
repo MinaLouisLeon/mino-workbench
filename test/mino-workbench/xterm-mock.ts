@@ -16,6 +16,9 @@ export interface MockTerminal {
   resizeHandler: ((size: { cols: number; rows: number }) => void) | null;
   written: string[];
   disposed: boolean;
+  /** What the context menu reads, and what it pasted. */
+  selection: string;
+  pasted: string[];
 }
 
 /** Every terminal constructed since the module was loaded, in order. */
@@ -29,6 +32,8 @@ export function terminalModule() {
     resizeHandler: ((size: { cols: number; rows: number }) => void) | null = null;
     written: string[] = [];
     disposed = false;
+    selection = "";
+    pasted: string[] = [];
 
     constructor() {
       terminals.push(this);
@@ -48,6 +53,15 @@ export function terminalModule() {
     }
     dispose() {
       this.disposed = true;
+    }
+    getSelection() {
+      return this.selection;
+    }
+    selectAll() {}
+    clear() {}
+    focus() {}
+    paste(text: string) {
+      this.pasted.push(text);
     }
   }
   return { Terminal };

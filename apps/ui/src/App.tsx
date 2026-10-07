@@ -1,4 +1,5 @@
 import type { TransportClient } from "@/Types";
+import { ContextMenuProvider } from "@/context/ContextMenuContext";
 import { TransportProvider } from "@/context/TransportContext";
 import { AppShell } from "@/features/workbench/components/AppShell";
 import { SelectionProvider } from "@/features/workbench/context/SelectionContext";
@@ -11,12 +12,14 @@ interface AppProps {
 
 export function App({ client }: AppProps) {
   return (
-    <TransportProvider client={client}>
-      <SessionProvider>
-        <SelectionProvider>
-          <AppShell />
-        </SelectionProvider>
-      </SessionProvider>
-    </TransportProvider>
+    <ContextMenuProvider>
+      <TransportProvider client={client}>
+        <SessionProvider>
+          <SelectionProvider>
+            <AppShell />
+          </SelectionProvider>
+        </SessionProvider>
+      </TransportProvider>
+    </ContextMenuProvider>
   );
 }

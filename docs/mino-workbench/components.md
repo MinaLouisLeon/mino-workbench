@@ -9,6 +9,9 @@
 | `Pane` | `title`, `accessory?`, `children` | all three panes |
 | `Notice` | `variant` (`info`/`warning`/`danger`), `title?`, `children` | terminal fallback, exit, errors; start-screen failures |
 | `StatusMessage` | `title`, `description?`, `tone?` | every pane's empty, loading and error body |
+| `ContextMenu` | `request`, `onClose` | rendered once, by `ContextMenuProvider` - see [context-menu-module.md](context-menu-module.md) |
+| `MenuItem` (+ `.Label`, `.Shortcut`) | none - reads `MenuItemProvider` | one per action in `ContextMenu` |
+| `ModalFrame` | `title`, `tone?`, `onCancel`, `children` | the tree's name and delete dialogs |
 
 `Pane` renders a labelled `section` with a header strip and a scrollable body,
 so the three panes cannot drift apart visually or in the accessibility tree.

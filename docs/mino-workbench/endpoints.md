@@ -18,6 +18,7 @@ Defined in `crates/mino-core/src/transport.rs`. Mirrored one-for-one by
 | `stat` (`transport.rs`) | Tauri `stat` · agent `{"method":"stat"}` | `path: string` | `DirEntry` |
 | `search_files` (`transport.rs`) | Tauri `search_files` · agent `{"method":"searchFiles"}` | `query: SearchQuery` | `SearchHits` |
 | `read_file` (`transport.rs`) | Tauri `read_file` · agent `{"method":"readFile"}` | `path: string`, `options: ReadFileOptions` | `FilePayload` |
+| `change_entry` (`transport.rs`) | Tauri `change_entry` · agent `{"method":"changeEntry"}` | `change: EntryChange` (`create` / `rename` / `delete`) | `DirEntry \| null` (`null` after a delete) |
 | `open_pty` (`transport.rs`) | Tauri `open_pty` · agent `{"method":"openPty"}` | `spec: PtySpawnSpec` | `PtySession` (Rust: `PtyStream`) |
 | `write_pty` (`transport.rs`) | Tauri `write_pty` · agent `{"method":"writePty"}` | `id: PtySessionId`, `data: string` | `void` |
 | `resize_pty` (`transport.rs`) | Tauri `resize_pty` · agent `{"method":"resizePty"}` | `id: PtySessionId`, `size: PtySize` | `void` |

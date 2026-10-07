@@ -1,6 +1,6 @@
 //! Shared body for a transport that compiles but is not built yet.
 //!
-//! A transport that is declared but not built needs all fourteen methods to
+//! A transport that is declared but not built needs all fifteen methods to
 //! exist and to answer with a typed `Unimplemented` error rather than a panic.
 //! That body lives here once instead of being copied into each module.
 //!
@@ -65,6 +65,13 @@ macro_rules! unimplemented_transport {
                 _request: $crate::types::WriteRequest,
             ) -> $crate::Result<$crate::types::DirEntry> {
                 Err($crate::TransportError::unimplemented($kind, "write_file"))
+            }
+
+            async fn change_entry(
+                &self,
+                _change: $crate::types::EntryChange,
+            ) -> $crate::Result<Option<$crate::types::DirEntry>> {
+                Err($crate::TransportError::unimplemented($kind, "change_entry"))
             }
 
             async fn open_pty(

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TransportClient, TransportError } from "@/Types";
 import {
+  ENTRY_COMMANDS,
   GIT_BRANCH_COMMANDS,
   GIT_COMMANDS,
   GIT_HISTORY_COMMANDS,
@@ -31,6 +32,7 @@ const METHODS: TransportMethod[] = [
   "searchFiles",
   "readFile",
   "writeFile",
+  "changeEntry",
   "openPty",
   "writePty",
   "resizePty",
@@ -39,6 +41,13 @@ const METHODS: TransportMethod[] = [
   "probeShell",
   "onPtyEvent",
 ];
+
+/**
+ * Every transport command, whichever module names it. `changeEntry` lives in
+ * `Types/modules/entries` because `api.ts` is at the file ceiling, but it is a
+ * `Transport` method like the rest and is held to the same contract.
+ */
+const COMMAND_FOR = { ...TRANSPORT_COMMANDS, ...ENTRY_COMMANDS };
 
 describe("transport client contract", () => {
   it("the fake implements every method the panes may call", () => {
@@ -55,7 +64,8 @@ describe("transport client contract", () => {
   });
 
   it("names one Tauri command per transport method", () => {
-    expect(Object.keys(TRANSPORT_COMMANDS)).toHaveLength(METHODS.length - 1);
+    expect(Object.keys(COMMAND_FOR)).toHaveLength(METHODS.length - 1);
+    expect(ENTRY_COMMANDS.changeEntry).toBe("change_entry");
     expect(TRANSPORT_COMMANDS.listDir).toBe("list_dir");
     expect(TRANSPORT_COMMANDS.runStructured).toBe("run_structured");
   });
@@ -93,7 +103,7 @@ describe("agent transport", () => {
     // `onPtyEvent` is the one method with no Tauri command behind it, so it
     // names itself rather than being looked up in the command map.
     const feature =
-      method === "onPtyEvent" ? "on_pty_event" : TRANSPORT_COMMANDS[method];
+      method === "onPtyEvent" ? "on_pty_event" : COMMAND_FOR[method];
     await expect(call.call(agent, "x", "y")).rejects.toEqual({
       kind: "unimplemented",
       detail: { feature, transport: "remoteAgent" },

@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 
+import type { EditorView } from "@codemirror/view";
+
 import type {
   FilePayload,
   GitBlameLine,
@@ -122,6 +124,8 @@ export interface CodeMirrorHandle {
   container: RefObject<HTMLDivElement | null>;
   /** 1-based, as editors and GitHub both count. `null` with no editor. */
   currentLine: () => number | null;
+  /** The live view, for the context menu's commands. `null` with no editor. */
+  view: () => EditorView | null;
 }
 
 export interface EditorStatusProps {

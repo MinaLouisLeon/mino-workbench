@@ -2,6 +2,7 @@ import type { KeyboardEvent } from "react";
 
 import { Notice } from "@/components/ui";
 
+import { useCommitMessageMenu } from "../hooks/useCommitMessageMenu";
 import { SOURCE_CONTROL_COPY } from "../messages";
 import type { CommitState } from "../types";
 
@@ -12,8 +13,12 @@ import type { CommitState } from "../types";
  * The button is disabled when the commit cannot happen, *and* the reason is
  * rendered beside it. "Nothing happens when I click commit" is a bad way to
  * learn that nothing is staged.
+ *
+ * Right-click on the message offers the conventional-commit types beside
+ * Cut, Copy and Paste - see `useCommitMessageMenu`.
  */
 export function CommitBox({ state }: { state: CommitState }) {
+  const onContextMenu = useCommitMessageMenu();
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     // Ctrl+Enter, the shortcut every git client shares.
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
@@ -33,6 +38,7 @@ export function CommitBox({ state }: { state: CommitState }) {
         value={state.message}
         onChange={(event) => state.setMessage(event.target.value)}
         onKeyDown={onKeyDown}
+        onContextMenu={onContextMenu}
         placeholder={SOURCE_CONTROL_COPY.messagePlaceholder}
         className="w-full resize-y rounded border border-border bg-surfaceSunken px-2 py-1 font-mono text-sm text-text placeholder:text-textFaint focus:border-borderStrong focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong"
       />

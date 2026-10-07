@@ -3,6 +3,7 @@ import { Trash2, Undo2, Upload } from "lucide-react";
 import type { GitStash } from "@/Types";
 import { absoluteTime } from "@/lib/relativeTime";
 
+import { useStashRowMenu } from "../hooks/useRefRowMenus";
 import { STASH_COPY } from "../messages";
 
 interface StashRowProps {
@@ -29,8 +30,11 @@ const ACTION_CLASSES =
  * same way a discard does.
  */
 export function StashRow({ entry, busy, age, onApply, onDrop }: StashRowProps) {
+  const onContextMenu = useStashRowMenu(entry, busy, { onApply, onDrop });
   return (
-    <li className="group flex items-center gap-2 px-2 py-1 text-xs hover:bg-surfaceHover">
+    <li
+      onContextMenu={onContextMenu}
+      className="group flex items-center gap-2 px-2 py-1 text-xs hover:bg-surfaceHover">
       <span className="min-w-0 flex-1">
         <span className="block truncate text-text" title={entry.message}>
           {entry.message}

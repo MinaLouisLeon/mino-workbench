@@ -547,3 +547,38 @@ from `../other`.
 | TC-348 | Reviewing | Press "Review" on the same row again | The panel and the gutter markers go away | none | Medium |
 | TC-349 | **SSH session** on a remote repository with a remote of its own | Fetch and push | Both run on the **remote host**, using that machine's credential helper. Nothing about this machine's git is involved | remote `git` | Medium |
 | TC-350 | **SSH session** without a credential on the remote host | Push | The same "configure a helper" sentence as TC-311, naming the fix on the remote machine. It does not hang | failing | High |
+
+## 21. Context menus and file operations
+
+See [context-menu-module.md](context-menu-module.md) and the file tree's
+[Creating, renaming and deleting](file-tree-pane-module.md#creating-renaming-and-deleting).
+Run these in `npm run desktop` - the dev build counts: the browser's menu must
+not appear there either.
+
+| ID | Preconditions | Steps | Expected result | Expected call(s) | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-351 | Any folder open | Right-click a pane header, the activity bar, the breadcrumb and an empty notice | **No menu at all.** Never the browser's Back / Reload / Inspect menu | none | High |
+| TC-352 | The same | Right-click a file row in the tree | This app's menu, with Open, New File…, New Folder…, Rename…, Copy Path, Copy Relative Path, Move to Recycle Bin…, Delete Permanently… | none | High |
+| TC-353 | The menu open | Press Down, Up, End, Home, then Escape | Focus moves between enabled entries and wraps; Escape closes it and the row has focus again | none | Medium |
+| TC-354 | A row focused from the keyboard | Press the Menu key (or Shift+F10) | The row's menu opens beside the row | none | Medium |
+| TC-355 | A row near the bottom-right corner of the window | Right-click it | The menu opens up and to the left rather than off-screen | none | Low |
+| TC-356 | The tree | Right-click `src` → New File…, type `lib.rs`, Enter | The dialog says "In src"; `src` opens if it was collapsed; `lib.rs` appears and opens in the viewer; `git status` shows it untracked | `change_entry` create, `list_dir`, `git_status` | High |
+| TC-357 | The tree | Right-click a file → New Folder…, type `../escape` | A sentence under the box says a name cannot contain `/` or `\`; Create is disabled; nothing is created outside or inside the folder | none | High |
+| TC-358 | **Windows**, local | New File… named `notes.txt:hidden` | Refused with a sentence about `:`. No file is created, and `dir /r` shows no alternate stream | `change_entry` refused | High |
+| TC-359 | A file `notes.md` exists | New File… named `notes.md` | The dialog stays open with "notes.md already exists in this folder"; the existing file's contents are unchanged | `change_entry` refused | High |
+| TC-360 | A file open with **unsaved edits** | Rename it to `todo.md` | The viewer now shows `todo.md` **with the unsaved edits still there**; Ctrl+S writes them to `todo.md` | `change_entry` rename, `write_file` | High |
+| TC-361 | **Windows/macOS** | Rename `readme.md` to `README.md` | Allowed - a change of case is not "already exists" | `change_entry` rename | Medium |
+| TC-362 | **data loss** - local session | Right-click a folder → Move to Recycle Bin…, then press Enter | Nothing is deleted: **Cancel** had focus | none | High |
+| TC-363 | Local session | Move to Recycle Bin… and confirm | The folder is gone from the tree and **is in the OS Recycle Bin / Trash**, restorable with its contents | `change_entry` delete trash | High |
+| TC-364 | **data loss** | Delete Permanently… on a file with unsaved edits | The confirmation says the unsaved edits will be lost and that it cannot be undone. Confirm: the file is gone, the viewer lets go of it, and nothing writes it back | `change_entry` delete permanent | High |
+| TC-365 | **data loss** - a symlink inside the folder that points **outside** it (`ln -s /tmp/keep link`) | Delete Permanently… the link | The link is gone; `/tmp/keep` and its contents are untouched | `change_entry` delete | High |
+| TC-366 | **SSH session** | Right-click a file | No "Move to Recycle Bin" entry; Delete Permanently… is there and works, including on a folder with contents | `change_entry` delete over SFTP | High |
+| TC-367 | Any | Right-click the root's empty space below the rows | New File…, New Folder…, Collapse All, Refresh. New File creates at the root | `change_entry` create | Medium |
+| TC-368 | A file open | Select text in the editor, right-click | Undo, Redo, Cut, Copy, Paste, Select All, Save, Copy Path. Copy then Paste elsewhere works; Ctrl+Z undoes a menu Paste | none | High |
+| TC-369 | A terminal | Select output, right-click → Copy; then right-click → Paste a two-line command | The selection is on the clipboard. The paste appears at the prompt **without running** until you press Enter | `write_pty` | High |
+| TC-370 | Four terminals open | Right-click one | Split Terminal is disabled and says why; Close this terminal closes only that one | `close_pty` | Medium |
+| TC-371 | Source control with staged changes | Type `fix(tree): menu` in the commit box, right-click → `feat: a new feature` | The message reads `feat(tree): menu`; Ctrl+Z restores `fix(tree): menu` | none | Medium |
+| TC-372 | Source control | Right-click a changed file → Discard Changes… | The **same** discard confirmation as the row's button; Cancel leaves the file alone | none until confirmed | High |
+| TC-373 | The search box, the SSH form fields | Right-click each | Cut, Copy, Paste, Select All - this app's menu, not the browser's | none | Medium |
+| TC-374 | **security** - the SSH form's passphrase or password field, if present | Right-click it | Cut and Copy are disabled | none | High |
+| TC-375 | **security** - GitHub view, a pull request | Right-click → Copy Link, then Open on GitHub | The link copied is the `https://github.com/...` URL as text; Open goes to the system browser and the workbench does not navigate | none | Medium |

@@ -2,6 +2,7 @@ import { GIT_BADGE_CLASSES, GIT_BADGES } from "@/features/git/badges";
 import { absoluteTime, relativeTime } from "@/lib/relativeTime";
 
 import { useHistory } from "../hooks/useHistory";
+import { useHistoryMenus } from "../hooks/useHistoryMenus";
 import { SOURCE_CONTROL_COPY } from "../messages";
 
 /**
@@ -13,6 +14,7 @@ import { SOURCE_CONTROL_COPY } from "../messages";
  */
 export function HistorySection({ active }: { active: boolean }) {
   const history = useHistory(active);
+  const menus = useHistoryMenus(history);
 
   if (history.error) {
     return (
@@ -44,6 +46,8 @@ export function HistorySection({ active }: { active: boolean }) {
             <button
               type="button"
               onClick={() => history.openCommit(commit.sha)}
+              onContextMenu={menus.onCommitMenu}
+              data-sha={commit.sha}
               aria-expanded={open}
               title={commit.summary}
               className={`flex w-full flex-col items-start gap-0.5 px-2 py-1 text-left text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong ${
@@ -65,7 +69,9 @@ export function HistorySection({ active }: { active: boolean }) {
               </span>
             </button>
 
-            {open ? <CommitFiles history={history} /> : null}
+            {open ? (
+              <CommitFiles history={history} onFileMenu={menus.onFileMenu} />
+            ) : null}
           </div>
         );
       })}
@@ -87,7 +93,13 @@ export function HistorySection({ active }: { active: boolean }) {
 }
 
 /** The open commit's files. Choosing one shows its diff in the viewer. */
-function CommitFiles({ history }: { history: ReturnType<typeof useHistory> }) {
+function CommitFiles({
+  history,
+  onFileMenu,
+}: {
+  history: ReturnType<typeof useHistory>;
+  onFileMenu: ReturnType<typeof useHistoryMenus>["onFileMenu"];
+}) {
   if (!history.files) {
     return (
       <p className="px-2 py-1 pl-6 text-xs text-textFaint">
@@ -112,6 +124,8 @@ function CommitFiles({ history }: { history: ReturnType<typeof useHistory> }) {
             <button
               type="button"
               onClick={() => history.openFile(file)}
+              onContextMenu={onFileMenu}
+              data-path={file.relativePath}
               title={file.oldPath ?? file.relativePath}
               className="flex w-full items-center gap-2 py-0.5 pl-6 pr-2 text-left text-xs hover:bg-surfaceHover focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong"
             >

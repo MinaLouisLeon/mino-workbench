@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useChangeRow } from "../context/ChangeRowContext";
+import { useChangeRowMenu } from "../hooks/useChangeRowMenu";
 import {
   ChangeRowActions,
   ChangeRowPath,
@@ -17,8 +18,12 @@ import {
  */
 function ChangeRowRoot({ children }: { children: ReactNode }) {
   const { row, selected } = useChangeRow();
+  // On the whole row, so a right-click on the state letter or the gap
+  // beside the buttons means the same as one on the name.
+  const onContextMenu = useChangeRowMenu();
   return (
     <div
+      onContextMenu={onContextMenu}
       className={`flex w-full items-center gap-1.5 px-2 py-0.5 text-sm ${
         selected ? "bg-accentMuted" : "hover:bg-surfaceHover"
       }`}

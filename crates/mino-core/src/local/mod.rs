@@ -17,6 +17,8 @@
 
 mod child;
 mod connect;
+mod entries;
+mod entry_paths;
 mod fs;
 mod git;
 mod git_branches;

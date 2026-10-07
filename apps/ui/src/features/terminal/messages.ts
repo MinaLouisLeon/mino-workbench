@@ -23,5 +23,8 @@ export const TERMINAL_COPY = {
   /** Shown on the disabled control, so the limit explains itself. */
   splitFull: "Four shells is the most this pane will hold",
   closeTerminal: "Close this terminal",
+  /** The menu's wording; `split` is the header button's. */
+  splitMenu: "Split Terminal",
+  clear: "Clear",
   splitHandle: "Resize terminals",
 } as const;
