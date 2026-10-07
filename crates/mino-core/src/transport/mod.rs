@@ -30,9 +30,9 @@ use async_trait::async_trait;
 
 use crate::error::Result;
 use crate::types::{
-    ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
-    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
-    StructuredRequest, WriteRequest,
+    ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtySessionId, PtySize,
+    PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe,
+    StructuredOutput, StructuredRequest, WriteRequest,
 };
 
 mod git;
@@ -85,6 +85,14 @@ pub trait Transport: Send + Sync + 'static {
     /// [`WriteRequest::expected_modified_ms`] - and returns the entry as it
     /// now stands, so the caller can update its baseline.
     async fn write_file(&self, path: &str, request: WriteRequest) -> Result<DirEntry>;
+
+    /// Creates, renames or deletes one entry, and returns the entry as it now
+    /// stands - `None` after a delete, where there is nothing left to return.
+    ///
+    /// The parent is resolved and checked against the root before anything
+    /// moves, and a name is one segment, checked by [`crate::entries`]. A
+    /// symlink is acted on itself, never followed. See [`EntryChange`].
+    async fn change_entry(&self, change: EntryChange) -> Result<Option<DirEntry>>;
 
     /// Spawns `nu`, or the platform default shell when `nu` is absent, with
     /// `PtySession::fell_back` set so the UI can say so.

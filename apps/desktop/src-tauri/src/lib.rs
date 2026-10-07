@@ -27,6 +27,20 @@ pub fn run() {
         // `capabilities/default.json`.
         .plugin(tauri_plugin_opener::init())
         .manage(state::AppState::new())
+        // The main window is built here rather than from the config alone,
+        // for one setting the config cannot express: clipboard access. The
+        // right-click menus' Paste reads the clipboard, and without this
+        // WebView2 decides on its own whether to allow the read. Its size and
+        // title still come from `tauri.conf.json`, where `create: false`
+        // stops a second window being made.
+        .setup(|app| {
+            if let Some(config) = app.config().app.windows.iter().find(|w| w.label == "main") {
+                tauri::WebviewWindowBuilder::from_config(app.handle(), config)?
+                    .enable_clipboard_access()
+                    .build()?;
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::connection::connect,
             commands::connection::disconnect,
@@ -35,6 +49,7 @@ pub fn run() {
             commands::fs::search_files,
             commands::fs::read_file,
             commands::fs::write_file,
+            commands::fs::change_entry,
             commands::git::git_repository,
             commands::git::git_status,
             commands::git::git_stage,

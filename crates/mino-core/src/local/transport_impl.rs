@@ -10,14 +10,14 @@ use crate::error::{Result, TransportError};
 use crate::shell;
 use crate::transport::{GitHubTransport, GitTransport, Transport};
 use crate::types::{
-    ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
-    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellKind, ShellProbe, StructuredOutput,
-    StructuredRequest, TransportKind, WriteRequest,
+    ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtySessionId, PtySize,
+    PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellKind, ShellProbe,
+    StructuredOutput, StructuredRequest, TransportKind, WriteRequest,
 };
 
 use super::pty::SpawnRequest;
 use super::roots;
-use super::{connect, fs, read, search, structured, write, LocalTransport};
+use super::{connect, entries, fs, read, search, structured, write, LocalTransport};
 
 #[async_trait]
 impl Transport for LocalTransport {
@@ -64,6 +64,10 @@ impl Transport for LocalTransport {
     async fn write_file(&self, path: &str, request: WriteRequest) -> Result<DirEntry> {
         let guard = self.guard()?;
         write::write_file(&guard, path, request)
+    }
+
+    async fn change_entry(&self, change: EntryChange) -> Result<Option<DirEntry>> {
+        entries::change_entry(&self.guard()?, change)
     }
 
     async fn open_pty(&self, spec: PtySpawnSpec) -> Result<PtyStream> {

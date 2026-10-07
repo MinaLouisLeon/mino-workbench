@@ -52,4 +52,15 @@ export class DraftStore {
     }
     return paths;
   }
+
+  /**
+   * Every path with a remembered draft, saved or not.
+   *
+   * For the tree's rename and delete: a draft is keyed by path, so a file
+   * that moves or goes takes its draft's key with it, and the caller has to
+   * move or drop the draft to match.
+   */
+  paths(): string[] {
+    return [...this.entries.keys()];
+  }
 }

@@ -8,12 +8,12 @@ use async_trait::async_trait;
 use crate::error::{Result, TransportError};
 use crate::transport::{GitHubTransport, GitTransport, Transport};
 use crate::types::{
-    ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtySessionId, PtySize, PtySpawnSpec,
-    PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
-    StructuredRequest, TransportKind, WriteRequest,
+    ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtySessionId, PtySize,
+    PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe,
+    StructuredOutput, StructuredRequest, TransportKind, WriteRequest,
 };
 
-use super::{connect, fs, pty_open, read, search, structured, write, SshTransport};
+use super::{connect, entries, fs, pty_open, read, search, structured, write, SshTransport};
 
 #[async_trait]
 impl Transport for SshTransport {
@@ -76,6 +76,11 @@ impl Transport for SshTransport {
     async fn write_file(&self, path: &str, request: WriteRequest) -> Result<DirEntry> {
         let connected = self.connected().await?;
         write::write_file(&connected.sftp, &connected.root, path, request).await
+    }
+
+    async fn change_entry(&self, change: EntryChange) -> Result<Option<DirEntry>> {
+        let connected = self.connected().await?;
+        entries::change_entry(&connected.sftp, &connected.root, change).await
     }
 
     async fn open_pty(&self, spec: PtySpawnSpec) -> Result<PtyStream> {

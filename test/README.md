@@ -18,6 +18,7 @@ test/
     fake-options.ts      everything a test can configure, in one interface
     fake-github.ts       the fake GitHub surface, and its request log (not a test file)
     fake-github-rows.ts  the GitHub rows and probes tests are written against
+    fake-entry-changes.ts  the fake changeEntry, and the record of what it was asked
     harness.tsx          render helpers (not a test file)
     unit/*.test.ts       pure logic, hooks, transforms
     integration/*.test.tsx  component render tests
@@ -42,7 +43,7 @@ test/
 
 | Module | Folder | Covers |
 | --- | --- | --- |
-| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation, diff mode and the blame gutter, branches and the stash, the GitHub view - checks, lists, the create confirmation and the four ways GitHub can be absent - and phase 6: fetch and pull, the two push confirmations, conflicts, and review threads including the outdated ones |
+| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation, diff mode and the blame gutter, branches and the stash, the GitHub view - checks, lists, the create confirmation and the four ways GitHub can be absent - and phase 6: fetch and pull, the two push confirmations, conflicts, and review threads including the outdated ones; the right-click menus - the browser's menu suppressed, the text-field and commit-type menus - and the tree's create, rename and delete confirmations |
 
 ## The transport is the test seam
 

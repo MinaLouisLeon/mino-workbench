@@ -2,6 +2,7 @@ import type {
   ConnectionInfo,
   ConnectionTarget,
   DirEntry,
+  EntryChange,
   FilePayload,
   GitClient,
   GitHubClient,
@@ -81,6 +82,10 @@ export class AgentTransport implements TransportClient {
 
   writeFile(_path: string, _request: WriteRequest): Promise<DirEntry> {
     return this.reject("write_file");
+  }
+
+  changeEntry(_change: EntryChange): Promise<DirEntry | null> {
+    return this.reject("change_entry");
   }
 
   openPty(_spec: PtySpawnSpec): Promise<PtySession> {

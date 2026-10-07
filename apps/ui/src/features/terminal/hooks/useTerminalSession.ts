@@ -108,5 +108,7 @@ export function useTerminalSession() {
     };
   }, [ready, connection, shellProbe, transport, terminal, fit]);
 
-  return { ...state, container };
+  // `terminal` is handed out for the context menu, which reads the selection
+  // and pastes through xterm rather than through the page.
+  return { ...state, container, terminal };
 }

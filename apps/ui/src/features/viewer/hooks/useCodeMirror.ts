@@ -129,5 +129,6 @@ export function useCodeMirror(options: CodeMirrorOptions): CodeMirrorHandle {
       if (!instance) return null;
       return instance.state.doc.lineAt(instance.state.selection.main.head).number;
     }, []),
+    view: useCallback(() => view.current, []),
   };
 }

@@ -34,6 +34,7 @@ import type {
   WriteRequest,
   TransportKind,
 } from "../generated";
+import type { EntryClient, EntryCommand } from "./entries";
 import type { GitClient, GitCommand } from "./git";
 import type { GitBranchCommand } from "./git-branches";
 import type { GitHistoryCommand } from "./git-history";
@@ -64,6 +65,7 @@ export const TRANSPORT_COMMANDS = {
  */
 export type TransportCommand =
   | (typeof TRANSPORT_COMMANDS)[keyof typeof TRANSPORT_COMMANDS]
+  | EntryCommand
   | GitBranchCommand
   | GitCommand
   | GitHistoryCommand
@@ -97,7 +99,7 @@ export type Unsubscribe = () => void;
  * Panes are written against this interface only, so the same components serve
  * the Tauri build today and the browser + agent build later.
  */
-export interface TransportClient {
+export interface TransportClient extends EntryClient {
   readonly kind: TransportKind;
   connect(target: ConnectionTarget): Promise<ConnectionInfo>;
   disconnect(): Promise<void>;

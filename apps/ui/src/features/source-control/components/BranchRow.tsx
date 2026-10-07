@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 
 import type { GitBranch } from "@/Types";
 
+import { useBranchRowMenu } from "../hooks/useRefRowMenus";
 import { BRANCH_COPY } from "../messages";
 
 interface BranchRowProps {
@@ -20,6 +21,7 @@ interface BranchRowProps {
  * would make the list shift under the cursor as you switch.
  */
 export function BranchRow({ branch, busy, onCheckout }: BranchRowProps) {
+  const onContextMenu = useBranchRowMenu(branch, busy, onCheckout);
   const upstream = branch.upstream
     ? BRANCH_COPY.tracking(branch.upstream)
     : BRANCH_COPY.noUpstream;
@@ -32,6 +34,7 @@ export function BranchRow({ branch, busy, onCheckout }: BranchRowProps) {
         aria-selected={branch.isHead}
         disabled={busy || branch.isHead}
         onClick={() => onCheckout(branch)}
+        onContextMenu={onContextMenu}
         title={`${branch.name} \u2014 ${upstream}`}
         className="flex w-full items-center gap-2 px-2 py-1 text-left text-xs hover:bg-surfaceHover focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong disabled:opacity-60"
       >

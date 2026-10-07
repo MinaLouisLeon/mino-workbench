@@ -1,5 +1,6 @@
 import type { ConflictResolution, GitConflict, GitConflictKind } from "@/Types";
 
+import { useConflictRowMenu } from "../hooks/useRefRowMenus";
 import { CONFLICT_COPY } from "../messages";
 
 interface ConflictRowProps {
@@ -54,9 +55,12 @@ export function ConflictRow({
   onOpen,
 }: ConflictRowProps) {
   const deleted = DELETES.includes(conflict.kind);
+  const onContextMenu = useConflictRowMenu(conflict, busy, { onResolve, onOpen }, deleted);
 
   return (
-    <li className="flex flex-col gap-1 border-b border-border px-2 py-1.5 last:border-b-0">
+    <li
+      onContextMenu={onContextMenu}
+      className="flex flex-col gap-1 border-b border-border px-2 py-1.5 last:border-b-0">
       <button
         type="button"
         onClick={() => onOpen(conflict)}

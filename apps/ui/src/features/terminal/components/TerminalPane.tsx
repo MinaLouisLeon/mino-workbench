@@ -48,7 +48,12 @@ export function TerminalPane() {
               className="min-w-0 overflow-hidden"
               style={{ flexBasis: `${sizes[index] ?? 100 / ids.length}%`, flexGrow: 0 }}
             >
-              <TerminalInstance closable={canClose} onClose={() => close(id)} />
+              <TerminalInstance
+                closable={canClose}
+                onClose={() => close(id)}
+                canSplit={canAdd}
+                onSplit={add}
+              />
             </div>
           </Fragment>
         ))}

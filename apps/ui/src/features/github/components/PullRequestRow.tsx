@@ -2,6 +2,7 @@ import type { GitHubPullRequest } from "@/Types";
 import { relativeTime } from "@/lib/relativeTime";
 
 import { useGitHubContext } from "../context/GitHubContext";
+import { usePullRequestMenu } from "../hooks/useGitHubMenus";
 import { PULL_REQUESTS_COPY, REVIEW_COPY } from "../messages";
 import { CheckState } from "./CheckState";
 import { ExternalLink } from "./ExternalLink";
@@ -37,9 +38,12 @@ export function PullRequestRow({
   // the sidebar.
   const { reviewing, review } = useGitHubContext();
   const isReviewing = reviewing === pull.number;
+  const onContextMenu = usePullRequestMenu(pull, selected, onSelect);
 
   return (
-    <div className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-surfaceHover">
+    <div
+      onContextMenu={onContextMenu}
+      className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-surfaceHover">
       <button
         type="button"
         onClick={() => onSelect(pull.number)}

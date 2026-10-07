@@ -7,6 +7,7 @@
 
 mod connection;
 mod entry;
+mod entry_change;
 mod file;
 mod git;
 mod github;
@@ -16,6 +17,7 @@ mod structured;
 
 pub use connection::{ConnectionInfo, ConnectionTarget, TransportKind};
 pub use entry::{DirEntry, EntryKind};
+pub use entry_change::{DeleteMode, EntryChange, NewEntryKind, MAX_ENTRY_NAME_BYTES};
 pub use file::{
     FileEncoding, FilePayload, ReadFileOptions, WriteRequest, DEFAULT_READ_LIMIT_BYTES,
     DEFAULT_WRITE_LIMIT_BYTES,

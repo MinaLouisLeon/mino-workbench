@@ -1,5 +1,5 @@
 use mino_core::types::{
-    DirEntry, FilePayload, ReadFileOptions, SearchHits, SearchQuery, WriteRequest,
+    DirEntry, EntryChange, FilePayload, ReadFileOptions, SearchHits, SearchQuery, WriteRequest,
 };
 use mino_core::TransportError;
 use tauri::State;
@@ -43,4 +43,12 @@ pub async fn write_file(
     request: WriteRequest,
 ) -> Result<DirEntry, TransportError> {
     state.current()?.write_file(&path, request).await
+}
+
+#[tauri::command]
+pub async fn change_entry(
+    state: State<'_, AppState>,
+    change: EntryChange,
+) -> Result<Option<DirEntry>, TransportError> {
+    state.current()?.change_entry(change).await
 }
