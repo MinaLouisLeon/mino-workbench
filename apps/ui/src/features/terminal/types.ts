@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 
-import type { PtyExit, PtySession, PtySize } from "@/Types";
+import type { ProjectScript, PtyExit, PtySession, PtySize } from "@/Types";
 
 export interface TerminalSessionState {
   session: PtySession | null;
@@ -22,6 +22,26 @@ export interface TerminalInstanceProps {
   /** False at the pane's ceiling; the menu says why. */
   canSplit: boolean;
   onSplit: () => void;
+  /** The project script this shell was opened to run, or null for a plain one. */
+  script: ProjectScript | null;
+}
+
+/** One terminal in the pane, as `useTerminalStack` tracks it. */
+export interface TerminalEntry {
+  id: string;
+  /** Run once as the shell starts; the shell stays open afterwards. */
+  script: ProjectScript | null;
+}
+
+/** What `TerminalStackContext` shares: the pane's terminals and their controls. */
+export interface TerminalStack {
+  terminals: TerminalEntry[];
+  ids: string[];
+  /** False when the pane is already full, so the caller can say so. */
+  add: (script?: ProjectScript) => boolean;
+  close: (id: string) => void;
+  canAdd: boolean;
+  canClose: boolean;
 }
 
 export interface TerminalSplitHandleProps {

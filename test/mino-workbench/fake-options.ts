@@ -2,6 +2,7 @@ import type {
   DirEntry,
   FilePayload,
   PtySession,
+  ScriptCatalog,
   ShellProbe,
   StructuredOutput,
   TransportError,
@@ -31,4 +32,6 @@ export interface FakeTransportOptions extends FakeGitOptions, FakeGitHubOptions 
   structured?: StructuredOutput;
   /** Paths the search walk would find, relative to the root. */
   searchable?: string[];
+  /** What `listProjectScripts` answers. Defaults to a folder with none. */
+  scripts?: ScriptCatalog;
 }

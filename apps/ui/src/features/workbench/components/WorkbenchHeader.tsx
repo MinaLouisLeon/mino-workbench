@@ -1,5 +1,6 @@
 import { Notice } from "@/components/ui";
 import { GitBranchStatus } from "@/features/git/components/GitBranchStatus";
+import { RunScriptMenu } from "@/features/scripts/components/RunScriptMenu";
 
 import { useSessionContext } from "../context/SessionContext";
 import { useChangeFolder } from "../hooks/useChangeFolder";
@@ -28,6 +29,10 @@ export function WorkbenchHeader() {
               already at its prop budget, and the branch, the dirty marker and
               the ahead/behind counts are four more. */}
           <GitBranchStatus />
+          {/* Beside the branch, and prop-less for the same reason: it reads
+              the session and the terminal stack from context. Renders
+              nothing in a folder that defines no scripts. */}
+          <RunScriptMenu />
           <button
             type="button"
             onClick={() => void request()}

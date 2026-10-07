@@ -7,17 +7,19 @@
 use async_trait::async_trait;
 
 use crate::error::{Result, TransportError};
+use crate::scripts::{self, Platform};
 use crate::shell;
 use crate::transport::{GitHubTransport, GitTransport, Transport};
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtySessionId, PtySize,
-    PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellKind, ShellProbe,
+    PtySpawnSpec, PtyStream, ReadFileOptions, ScriptCatalog, SearchHits, SearchQuery, ShellProbe,
     StructuredOutput, StructuredRequest, TransportKind, WriteRequest,
 };
 
-use super::pty::SpawnRequest;
 use super::roots;
-use super::{connect, entries, fs, read, search, structured, write, LocalTransport};
+use super::{
+    connect, entries, fs, pty_open, read, scan, search, structured, write, LocalTransport,
+};
 
 #[async_trait]
 impl Transport for LocalTransport {
@@ -70,24 +72,12 @@ impl Transport for LocalTransport {
         entries::change_entry(&self.guard()?, change)
     }
 
+    async fn list_project_scripts(&self) -> Result<ScriptCatalog> {
+        scripts::scan(&scan::LocalScan(self.guard()?), Platform::local()).await
+    }
+
     async fn open_pty(&self, spec: PtySpawnSpec) -> Result<PtyStream> {
-        let guard = self.guard()?;
-        let cwd = match &spec.cwd {
-            Some(cwd) => roots::display_path(&guard.resolve(cwd)?),
-            None => guard.root_display(),
-        };
-        let probe = shell::probe();
-        let (program, kind) = match probe.nu_path {
-            Some(nu) => (nu, ShellKind::Nu),
-            None => (probe.fallback_program, ShellKind::Fallback),
-        };
-        self.ptys.open(SpawnRequest {
-            fell_back: kind == ShellKind::Fallback,
-            program,
-            shell: kind,
-            cwd,
-            size: spec.size,
-        })
+        pty_open::open(self, spec).await
     }
 
     async fn write_pty(&self, id: &PtySessionId, data: &str) -> Result<()> {

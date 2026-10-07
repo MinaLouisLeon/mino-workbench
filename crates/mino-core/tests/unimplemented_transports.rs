@@ -60,8 +60,16 @@ async fn assert_every_method_unimplemented(
         kind
     ));
     assert!(is_unimplemented(
+        transport.list_project_scripts().await.unwrap_err(),
+        kind
+    ));
+    assert!(is_unimplemented(
         transport
-            .open_pty(PtySpawnSpec { cwd: None, size })
+            .open_pty(PtySpawnSpec {
+                cwd: None,
+                size,
+                script: None
+            })
             .await
             .unwrap_err(),
         kind

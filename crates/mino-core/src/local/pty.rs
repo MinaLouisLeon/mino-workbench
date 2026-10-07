@@ -11,6 +11,7 @@ use std::sync::Mutex;
 use portable_pty::MasterPty;
 
 use crate::error::{Result, TransportError};
+use crate::scripts::launch::Launch;
 use crate::types::{PtySession, PtySessionId, PtySize, PtyStream, ShellKind};
 
 use super::pty_spawn::{spawn, SharedChild};
@@ -23,7 +24,11 @@ struct LiveSession {
 
 /// Everything a caller must decide before a shell is spawned.
 pub struct SpawnRequest {
+    /// The shell, as the session reports it - `nu`, `powershell.exe`.
     pub program: String,
+    /// What is actually spawned: the shell itself, or a launcher that runs a
+    /// script and then becomes the shell.
+    pub launch: Launch,
     pub shell: ShellKind,
     pub cwd: String,
     pub size: PtySize,
@@ -42,7 +47,7 @@ impl PtyRegistry {
 
     pub fn open(&self, request: SpawnRequest) -> Result<PtyStream> {
         let size = request.size.sanitised();
-        let spawned = spawn(&request.program, &request.cwd, size)?;
+        let spawned = spawn(&request.launch, &request.cwd, size)?;
         let id = PtySessionId::new();
 
         self.lock()?.insert(

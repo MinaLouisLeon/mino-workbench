@@ -582,3 +582,40 @@ not appear there either.
 | TC-373 | The search box, the SSH form fields | Right-click each | Cut, Copy, Paste, Select All - this app's menu, not the browser's | none | Medium |
 | TC-374 | **security** - the SSH form's passphrase or password field, if present | Right-click it | Cut and Copy are disabled | none | High |
 | TC-375 | **security** - GitHub view, a pull request | Right-click → Copy Link, then Open on GitHub | The link copied is the `https://github.com/...` URL as text; Open goes to the system browser and the workbench does not navigate | none | Medium |
+
+## 22. Running project scripts
+
+The ▶ button beside the branch name. See
+[scripts-module.md](scripts-module.md). The cases worth running first are the
+security ones (TC-391 to TC-394): a script name is written by whoever wrote the
+repository, and it must never become shell text.
+
+**Fixtures:** a pnpm workspace (`package.json` with `"workspaces":
+["packages/*"]`, `pnpm-lock.yaml`, `packages/web/package.json` with a `start`
+script), plus a `Makefile` with a `build` target and `scripts/hello.sh`.
+
+| ID | Precondition | Steps | Expected | Calls | Priority |
+| --- | --- | --- | --- | --- | --- |
+| TC-376 | A folder with no manifest and no script files | Open it | No ▶ button in the header. Nothing else changes | `list_project_scripts` | High |
+| TC-377 | The workspace fixture, **not** a git repository | Open it | The ▶ button shows even though there is no branch name | `list_project_scripts` | High |
+| TC-378 | The workspace fixture in a git repository | Look at the header | The ▶ button sits right after the branch name and its markers | none | Medium |
+| TC-379 | The fixture | Press ▶ | A dropdown with a filter field (focused), a section per package and tool, e.g. `web · pnpm` and `This folder · make`, each row showing its command underneath | `list_project_scripts` again | High |
+| TC-380 | The fixture | Press ▶ on `start` | A new split opens on the right, labelled `▶ pnpm: start`. It prints `> pnpm run start` dimmed, then runs it in `packages/web` | `open_pty` with `script` | High |
+| TC-381 | A script that finishes (e.g. `make build`) | Let it end | The split stays open at a shell prompt in the script's folder, and typing works | none | High |
+| TC-382 | A long-running script (`pnpm dev`) | Press Ctrl+C in its split | The script stops, the shell stays and shows a prompt. The split is not closed | `write_pty` | High |
+| TC-383 | A running script split | Close it with ✕ | The script's process is gone (check Task Manager / `ps`). Exactly one session closes | `close_pty` | High |
+| TC-384 | Four shells open | Open the menu | "Four shells is the most this pane will hold" heads the list. Rows are greyed and pressing one does nothing | none | High |
+| TC-385 | Focus in a terminal | Press Ctrl+Shift+R (Cmd+Shift+R on macOS) | The menu opens with the filter focused. The keystroke did **not** reach the shell. Pressing it again closes it | none | High |
+| TC-386 | Menu open | Press ↓ ↓ ↑, then Enter | The highlight moves through rows across sections, wraps at either end, and Enter runs the highlighted one | `open_pty` | Medium |
+| TC-387 | Menu open (from the ▶ button, then again from a terminal with Ctrl+Shift+R) | Press Esc | The menu closes and focus returns to where it was: the ▶ button the first time, the terminal - typing reaches the shell - the second | none | Medium |
+| TC-388 | Menu open | Type `web start` | Only `start` from `web` remains. Typing `zzz` shows "No script matches “…”." | none | Medium |
+| TC-389 | One script run earlier in this folder | Reopen the menu, then restart the app and reopen it | A **Recent** section is on top with that script, both times. In another folder it is not shown | none | Medium |
+| TC-390 | Menu closed | Add a script to `package.json` in another editor, then reopen the menu | The new script is listed without reopening the folder | `list_project_scripts` | High |
+| TC-391 | **security** - `package.json` scripts named `a&calc`, `x|whoami`, `$(id)`, `%PATH%` and `--eval` | Open the menu | None of them is listed, and the footer says "5 scripts were left out because their names hold characters a shell could misread." | `list_project_scripts` | High |
+| TC-392 | **security** - a script whose *command* is `echo pwned > owned.txt` | Run it | It runs as written. That is the script's own content, which is what running a script means. The *name* is what may not inject. Confirm only one `owned.txt`, in the script's folder | `open_pty` | Medium |
+| TC-393 | **security** - devtools open | Call `open_pty` with `script: { source: "npm", dir: "..", name: "dev" }`, then `dir: "/etc"` | Both refused with a sentence. No process starts | `open_pty` refused | High |
+| TC-394 | **security** - SSH session, a remote `package.json` with a script named `it's` | Open the menu | It is left out and counted. No remote command runs with it | `list_project_scripts` | High |
+| TC-395 | **SSH session** on the fixture | Run `start` | It runs on the **remote host**, in `packages/web`, and leaves the remote shell open | `open_pty` | High |
+| TC-396 | Windows, `nu` absent, PowerShell present | Run `pnpm: start` | It runs under PowerShell, finding `pnpm.cmd` even with script execution disabled. A `PS …>` prompt follows | `open_pty` | Medium |
+| TC-397 | Per ecosystem: a Cargo crate, a Go module with `main.go`, a `pyproject.toml` with `[project.scripts]` and `uv.lock`, a `justfile`, a `Taskfile.yml`, `composer.json`, `deno.jsonc`, a Gradle project with `gradlew`, `pom.xml`, a `.csproj` | Open each and look at the menu | Each lists what [scripts-module.md](scripts-module.md) says it should, with the right runner (`uv`, `./gradlew` or `.\gradlew.bat`) | `list_project_scripts` | Medium |
+| TC-398 | A monorepo with more than 64 packages | Open the menu | It lists the first 64 packages' scripts and says some are not listed | `list_project_scripts` with `truncated` | Low |

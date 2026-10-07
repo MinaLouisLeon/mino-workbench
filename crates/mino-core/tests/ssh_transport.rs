@@ -46,7 +46,11 @@ async fn every_call_before_connect_is_not_connected() {
     ));
     assert!(not_connected(
         transport
-            .open_pty(PtySpawnSpec { cwd: None, size })
+            .open_pty(PtySpawnSpec {
+                cwd: None,
+                size,
+                script: None
+            })
             .await
             .unwrap_err()
     ));

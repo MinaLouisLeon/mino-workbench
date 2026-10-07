@@ -49,12 +49,14 @@ Prop shapes live in `components/ui/types.ts`; nothing declares them inline.
 | search | `HighlightedText` | Marks the characters the Rust matcher matched |
 | viewer | `ViewerPane` | CodeMirror mount plus guard states |
 | terminal | `TerminalPane` | xterm mount plus notices |
+| scripts | `RunScriptMenu` / `ScriptMenuPanel` / `ScriptGroup` | The header's ▶ button and its dropdown. Prop-less, like `GitBranchStatus`; renders nothing in a folder with no scripts |
+| scripts | `ScriptRow` (`.Name`, `.Command`) | Compound row, like the tree's. An `option` pointed at by `aria-activedescendant`, so focus stays in the filter |
 
 ## The compound rows
 
-Repeated list items are built as compound components. There are three:
-`TreeRow` in the file tree, `SearchRow` in the search results and `ChangeRow`
-in source control. All three follow the same shape, which is now load-bearing
+Repeated list items are built as compound components. There are four:
+`TreeRow` in the file tree, `SearchRow` in the search results, `ChangeRow`
+in source control and `ScriptRow` in the run-script menu. All of them follow the same shape, which is now load-bearing
 rather than incidental:
 
 ```tsx

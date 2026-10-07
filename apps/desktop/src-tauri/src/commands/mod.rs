@@ -19,4 +19,5 @@ pub mod git_remote;
 pub mod git_stash;
 pub mod github;
 pub mod pty;
+pub mod scripts;
 pub mod shell;

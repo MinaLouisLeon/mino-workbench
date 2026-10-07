@@ -10,6 +10,7 @@
 //! escapes anything it cannot quote safely.
 
 use crate::error::{Result, TransportError};
+use crate::scripts::launch::SH_RUN;
 use crate::types::StructuredRequest;
 
 /// Reads the JSON on stdin and binds it as `$env.MINO_*` before the pipeline
@@ -40,6 +41,26 @@ pub fn command_line(nu: &str, pipeline: &str, cwd: Option<&str>) -> Result<Strin
 /// are still caller-influenced, so they are treated as data.
 pub fn command_line_shell(program: &str, cwd: &str) -> Result<String> {
     Ok(format!("cd {} && exec {}", quote(cwd)?, quote(program)?))
+}
+
+/// The launch line for a shell that runs a project script first.
+///
+/// `SH_RUN` is fixed program text; the shell and the argv follow it as
+/// positional parameters, each single-quoted, so the remote `sh` runs them as
+/// `"$@"` and never parses them. The argv's values were already held to
+/// `scripts::safe` before they got here; quoting them is the second wall.
+pub fn command_line_script(program: &str, cwd: &str, argv: &[String]) -> Result<String> {
+    let mut line = format!(
+        "cd {} && exec /bin/sh -c {} {}",
+        quote(cwd)?,
+        quote(SH_RUN)?,
+        quote(program)?
+    );
+    for arg in argv {
+        line.push(' ');
+        line.push_str(&quote(arg)?);
+    }
+    Ok(line)
 }
 
 /// POSIX single-quoting. A single quote cannot appear inside single quotes, so
@@ -103,6 +124,14 @@ mod tests {
         assert!(quote("/srv/it's").is_err());
         assert!(quote("/srv/app").is_ok());
         assert!(command_line("nu", "ls | to json", Some("/srv/it's")).is_err());
+    }
+
+    #[test]
+    fn a_script_travels_as_quoted_parameters() {
+        let argv = vec!["npm".to_string(), "run".to_string(), "dev".to_string()];
+        let line = command_line_script("/usr/bin/nu", "/srv/app", &argv).unwrap();
+        assert!(line.starts_with("cd '/srv/app' && exec /bin/sh -c '"));
+        assert!(line.ends_with("'/usr/bin/nu' 'npm' 'run' 'dev'"));
     }
 
     #[test]

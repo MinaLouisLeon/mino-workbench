@@ -1,5 +1,6 @@
 import { Notice } from "@/components/ui";
 import { basename } from "@/lib/path";
+import { scriptLabel } from "@/features/scripts/labels";
 
 import { useTerminalMenu } from "../hooks/useTerminalMenu";
 import { useTerminalSession } from "../hooks/useTerminalSession";
@@ -14,16 +15,26 @@ import type { TerminalInstanceProps } from "../types";
  * them. Unmounting one closes exactly one session.
  */
 export function TerminalInstance(props: TerminalInstanceProps) {
-  const { closable, onClose } = props;
-  const { container, terminal, session, error, exit, fallbackShell } = useTerminalSession();
+  const { closable, onClose, script } = props;
+  const { container, terminal, session, error, exit, fallbackShell } =
+    useTerminalSession(script);
   const onContextMenu = useTerminalMenu(terminal, props);
   const hasNotice = Boolean(fallbackShell || error || exit);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surfaceSunken">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-2 py-1">
-        <span className="min-w-0 truncate text-xs text-textFaint">
-          {session ? basename(session.program) : TERMINAL_COPY.starting}
+        {/* A script's split is named for the script, so four columns of the
+            same shell can be told apart at a glance. */}
+        <span
+          className={`min-w-0 truncate text-xs ${script ? "text-textMuted" : "text-textFaint"}`}
+          title={script ? TERMINAL_COPY.scriptTitle(script.command) : undefined}
+        >
+          {script
+            ? `${TERMINAL_COPY.scriptMarker} ${scriptLabel(script)}`
+            : session
+              ? basename(session.program)
+              : TERMINAL_COPY.starting}
         </span>
         {closable ? (
           <button

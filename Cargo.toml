@@ -26,6 +26,7 @@ serde_json = "1.0.134"
 thiserror = "2.0.9"
 tokio = { version = "1.42.0", features = ["full"] }
 tracing = "0.1.41"
+toml = "0.9.12"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 ts-rs = { version = "10.1.0", features = ["serde-json-impl", "no-serde-warnings"] }
 uuid = { version = "1.11.0", features = ["v4", "serde"] }

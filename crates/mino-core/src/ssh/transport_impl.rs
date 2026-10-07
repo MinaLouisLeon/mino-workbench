@@ -6,10 +6,11 @@
 use async_trait::async_trait;
 
 use crate::error::{Result, TransportError};
+use crate::scripts::{self, Platform, Through};
 use crate::transport::{GitHubTransport, GitTransport, Transport};
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtySessionId, PtySize,
-    PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe,
+    PtySpawnSpec, PtyStream, ReadFileOptions, ScriptCatalog, SearchHits, SearchQuery, ShellProbe,
     StructuredOutput, StructuredRequest, TransportKind, WriteRequest,
 };
 
@@ -83,9 +84,15 @@ impl Transport for SshTransport {
         entries::change_entry(&connected.sftp, &connected.root, change).await
     }
 
+    /// The remote host is POSIX, as the shell probe already assumes.
+    async fn list_project_scripts(&self) -> Result<ScriptCatalog> {
+        scripts::scan(&Through(self), Platform::Unix).await
+    }
+
     async fn open_pty(&self, spec: PtySpawnSpec) -> Result<PtyStream> {
+        let argv = pty_open::script_argv(self, &spec).await?;
         let connected = self.connected().await?;
-        pty_open::open(&self.ptys, &connected, spec).await
+        pty_open::open(&self.ptys, &connected, spec, argv.as_deref()).await
     }
 
     async fn write_pty(&self, id: &PtySessionId, data: &str) -> Result<()> {

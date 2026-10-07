@@ -111,6 +111,11 @@ export function createFakeTransport(options: FakeTransportOptions = {}) {
       if (!payload) throw { kind: "notFound", detail: { path } } as TransportError;
       return payload;
     }),
+    listProjectScripts: vi.fn(async () => {
+      const failure = options.failures?.listProjectScripts;
+      if (failure) throw failure;
+      return options.scripts ?? { scripts: [], skipped: 0, truncated: false };
+    }),
     openPty: vi.fn(async () => session),
     writePty: vi.fn(async () => undefined),
     resizePty: vi.fn(async () => undefined),

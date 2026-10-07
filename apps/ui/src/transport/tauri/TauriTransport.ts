@@ -24,6 +24,7 @@ import type {
   ReadFileOptions,
   ResizePtyArgs,
   RunStructuredArgs,
+  ScriptCatalog,
   SearchFilesArgs,
   SearchHits,
   SearchQuery,
@@ -104,6 +105,10 @@ export class TauriTransport implements TransportClient {
 
   changeEntry(change: EntryChange): Promise<DirEntry | null> {
     return invokeTransport(ENTRY_COMMANDS.changeEntry, { change } satisfies ChangeEntryArgs);
+  }
+
+  listProjectScripts(): Promise<ScriptCatalog> {
+    return invokeTransport(TRANSPORT_COMMANDS.listProjectScripts);
   }
 
   openPty(spec: PtySpawnSpec): Promise<PtySession> {

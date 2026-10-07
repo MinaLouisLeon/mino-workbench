@@ -31,7 +31,7 @@ use async_trait::async_trait;
 use crate::error::Result;
 use crate::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtySessionId, PtySize,
-    PtySpawnSpec, PtyStream, ReadFileOptions, SearchHits, SearchQuery, ShellProbe,
+    PtySpawnSpec, PtyStream, ReadFileOptions, ScriptCatalog, SearchHits, SearchQuery, ShellProbe,
     StructuredOutput, StructuredRequest, WriteRequest,
 };
 
@@ -94,8 +94,20 @@ pub trait Transport: Send + Sync + 'static {
     /// symlink is acted on itself, never followed. See [`EntryChange`].
     async fn change_entry(&self, change: EntryChange) -> Result<Option<DirEntry>>;
 
+    /// The scripts this folder defines - `package.json`, a Makefile, Cargo,
+    /// and the rest of the table in [`crate::scripts::detectors`] - across the
+    /// root and its declared workspace members.
+    ///
+    /// Reads through `list_dir` and `read_file`, so the path guard applies to
+    /// every manifest exactly as it does to a file opened in the viewer.
+    async fn list_project_scripts(&self) -> Result<ScriptCatalog>;
+
     /// Spawns `nu`, or the platform default shell when `nu` is absent, with
     /// `PtySession::fell_back` set so the UI can say so.
+    ///
+    /// With `spec.script` set, the shell runs that script first and stays
+    /// open at a prompt afterwards. The script is looked up again here, and
+    /// its argv is built from fixed program text - see [`crate::scripts`].
     async fn open_pty(&self, spec: PtySpawnSpec) -> Result<PtyStream>;
 
     async fn write_pty(&self, id: &PtySessionId, data: &str) -> Result<()>;

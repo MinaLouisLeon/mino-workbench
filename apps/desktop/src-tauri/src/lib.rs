@@ -50,6 +50,7 @@ pub fn run() {
             commands::fs::read_file,
             commands::fs::write_file,
             commands::fs::change_entry,
+            commands::scripts::list_project_scripts,
             commands::git::git_repository,
             commands::git::git_status,
             commands::git::git_stage,

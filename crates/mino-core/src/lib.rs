@@ -15,6 +15,7 @@ pub mod git;
 pub mod github;
 pub mod local;
 pub mod remote;
+pub mod scripts;
 pub mod search;
 pub mod shell;
 pub mod ssh;

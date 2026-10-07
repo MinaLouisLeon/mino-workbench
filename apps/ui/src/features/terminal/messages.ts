@@ -27,4 +27,8 @@ export const TERMINAL_COPY = {
   splitMenu: "Split Terminal",
   clear: "Clear",
   splitHandle: "Resize terminals",
+
+  /** Prefixes a split opened from the run-script menu: "▶ pnpm: dev". */
+  scriptMarker: "▶",
+  scriptTitle: (command: string) => `Opened to run: ${command}`,
 } as const;

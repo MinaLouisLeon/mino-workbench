@@ -26,6 +26,7 @@ import type {
   PtySize,
   PtySpawnSpec,
   ReadFileOptions,
+  ScriptCatalog,
   SearchHits,
   SearchQuery,
   ShellProbe,
@@ -51,6 +52,7 @@ export const TRANSPORT_COMMANDS = {
   searchFiles: "search_files",
   readFile: "read_file",
   writeFile: "write_file",
+  listProjectScripts: "list_project_scripts",
   openPty: "open_pty",
   writePty: "write_pty",
   resizePty: "resize_pty",
@@ -125,6 +127,19 @@ export interface TransportClient extends EntryClient {
    * see `WriteRequest.expectedModifiedMs`.
    */
   writeFile(path: string, request: WriteRequest): Promise<DirEntry>;
+
+  /**
+   * The scripts this folder defines - `package.json`, a Makefile, Cargo and
+   * the rest of the Rust detector table - across the root and its declared
+   * workspace members. Re-read on every call; nothing is cached.
+   */
+  listProjectScripts(): Promise<ScriptCatalog>;
+
+  /**
+   * Opens a shell. With `spec.script` set it runs that script first and stays
+   * open at a prompt afterwards. Only the script's identity travels: Rust
+   * looks it up again and builds the command itself.
+   */
   openPty(spec: PtySpawnSpec): Promise<PtySession>;
   writePty(id: PtySessionId, data: string): Promise<void>;
   resizePty(id: PtySessionId, size: PtySize): Promise<void>;

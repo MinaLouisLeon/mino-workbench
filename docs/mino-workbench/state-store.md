@@ -17,6 +17,8 @@ everything else is a hook local to its feature.
 | `DraftsContext` | `features/viewer/context/DraftsContext.tsx` | the session's `DraftStore` | the editor writes it; source control clears a file's draft when it discards that file |
 | `ChangeRowContext` | `features/source-control/context/ChangeRowContext.tsx` | one change row's data and handlers | the row's parts |
 | `ViewerModeContext` | `features/viewer/context/ViewerModeContext.tsx` | `mode`, `blame`, and the commit a file was opened at | the viewer; the history list writes to it |
+| `TerminalStackContext` | `features/terminal/context/TerminalStackContext.tsx` | the terminals the pane holds (`{ id, script }`), `add(script?)`, `close`, `canAdd`, `canClose` | the terminal pane, and the header's run-script menu, which opens splits |
+| `ScriptRowContext` | `features/scripts/context/ScriptRowContext.tsx` | one menu row's script, highlight, disabled flag and handlers | the row's parts |
 | `GitHubContext` | `features/github/context/GitHubContext.tsx` | the probe's `state`, `repository`, `detail`, the current `branch`, one `refresh`, and which pull request is being `reviewing`ed | the four GitHub sections, the viewer header's "open on github.com", and the viewer's review gutter |
 
 `TransportProvider` takes an optional `client`, which is the seam tests inject
@@ -48,6 +50,9 @@ of which branch is checked out could disagree.
 | `useFileTree` | `features/file-tree/hooks/useFileTree.ts` | the lazy-load state machine |
 | `useFileTreePane` | `features/file-tree/hooks/useFileTreePane.ts` | root, rows, selection, activation |
 | `useGitStatus` | `features/git/hooks/useGitStatus.ts` | the two git calls, the stale-answer guard, and the refresh policy |
+| `useProjectScripts` | `features/scripts/hooks/useProjectScripts.ts` | the script catalog, re-read on folder open, menu open and window focus, with the stale-answer guard |
+| `useScriptMenu` | `features/scripts/hooks/useScriptMenu.ts` | the menu's open state, filter, highlight, and running a script through the terminal stack |
+| `useRecentScripts` | `features/scripts/hooks/useRecentScripts.ts` | the persisted recent list, per folder |
 | `useGitEntry` | `features/git/hooks/useGitEntry.ts` | one path's badge and ignored flag, looked up out of the status |
 | `useSourceControl` | `features/source-control/hooks/useSourceControl.ts` | grouping, the action runner, and what each control means |
 | `useCommitBox` | `features/source-control/hooks/useCommitBox.ts` | the message, why the button is unavailable, and keeping the text through a failure |
@@ -82,6 +87,11 @@ logic, it gets a hook.
 | --- | --- | --- |
 | `mino.layout.v1` | `{ tree, viewer, terminal }` split percentages | `localStorage` |
 | `mino.sidebar.v1` | `{ activeView, collapsed }` | `localStorage` |
+| `mino.recentScripts.v1` | folder path → up to five script keys (source, folder and name), at most 20 folders | `localStorage` |
+
+The recent-scripts list is a preference about this app's own menu. It holds
+what *identifies* a script and never its command, its output or its
+environment.
 
 **Nothing else.** No credentials, no private keys, no passphrases, no host
 secrets, no file contents, no directory listings, and no git or GitHub state -

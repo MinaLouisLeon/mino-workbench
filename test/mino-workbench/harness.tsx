@@ -8,6 +8,7 @@ import { TransportProvider } from "@/context/TransportContext";
 import { GitRefreshProvider } from "@/features/git/context/GitRefreshContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
 import { GitHubProvider } from "@/features/github/context/GitHubContext";
+import { TerminalStackProvider } from "@/features/terminal/context/TerminalStackContext";
 import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
 import { ViewerModeProvider } from "@/features/viewer/context/ViewerModeContext";
 import { SelectionProvider } from "@/features/workbench/context/SelectionContext";
@@ -54,6 +55,9 @@ export function sshTarget(root: string): ConnectionTarget {
  * "git changed the working tree" event, and a pane rendered without it would
  * be a pane the harness could not exercise a checkout against.
  *
+ * `TerminalStackProvider` is here because the terminal pane and the header's
+ * run-script menu both open splits, and so share one stack.
+ *
  * `GitHubProvider` is here because the viewer header carries the "open on
  * github.com" command, and because the fake's probe defaults to `unsupported`
  * - which means every existing test goes on asserting the no-GitHub rendering
@@ -77,7 +81,9 @@ export function renderConnected(
                 <GitHubProvider>
                   <SelectionProvider>
                     <ViewerModeProvider>
-                      <Connected target={target}>{ui}</Connected>
+                      <TerminalStackProvider>
+                        <Connected target={target}>{ui}</Connected>
+                      </TerminalStackProvider>
                     </ViewerModeProvider>
                   </SelectionProvider>
                 </GitHubProvider>
@@ -102,7 +108,9 @@ export function withProviders(client: TransportClient) {
                 <GitStatusProvider>
                   <GitHubProvider>
                     <SelectionProvider>
-                      <ViewerModeProvider>{children}</ViewerModeProvider>
+                      <ViewerModeProvider>
+                        <TerminalStackProvider>{children}</TerminalStackProvider>
+                      </ViewerModeProvider>
                     </SelectionProvider>
                   </GitHubProvider>
                 </GitStatusProvider>

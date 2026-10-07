@@ -43,7 +43,7 @@ test/
 
 | Module | Folder | Covers |
 | --- | --- | --- |
-| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation, diff mode and the blame gutter, branches and the stash, the GitHub view - checks, lists, the create confirmation and the four ways GitHub can be absent - and phase 6: fetch and pull, the two push confirmations, conflicts, and review threads including the outdated ones; the right-click menus - the browser's menu suppressed, the text-field and commit-type menus - and the tree's create, rename and delete confirmations |
+| `mino-workbench` | `test/mino-workbench/` | transport client contract, tree lazy-load, viewer guards, `nu`-missing fallback, git badges and the no-git degrade, staging and the discard confirmation, diff mode and the blame gutter, branches and the stash, the GitHub view - checks, lists, the create confirmation and the four ways GitHub can be absent - and phase 6: fetch and pull, the two push confirmations, conflicts, and review threads including the outdated ones; the right-click menus - the browser's menu suppressed, the text-field and commit-type menus - and the tree's create, rename and delete confirmations; and the run-script menu - listing, filtering, the keyboard, recent scripts, and the split it opens sending only which script it is |
 
 ## The transport is the test seam
 
