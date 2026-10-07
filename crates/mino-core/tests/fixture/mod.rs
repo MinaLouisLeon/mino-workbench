@@ -20,6 +20,9 @@ pub mod git_remote;
 /// A repository stopped mid-merge, for `git_conflicts.rs`.
 pub mod conflicted;
 
+/// Hand-built folders for the project-script detector suites.
+pub mod scripts;
+
 /// The whole git surface asserted `Unimplemented`, for
 /// `unimplemented_transports.rs`.
 pub mod unbuilt_git;

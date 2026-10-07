@@ -12,6 +12,7 @@ mod file;
 mod git;
 mod github;
 mod pty;
+mod scripts;
 mod search;
 mod structured;
 
@@ -39,6 +40,10 @@ pub use github::{
     MAX_GITHUB_LIMIT, MAX_PR_BODY_BYTES, MAX_PR_TITLE_BYTES,
 };
 pub use pty::{PtyEvent, PtyExit, PtySession, PtySessionId, PtySize, PtySpawnSpec, PtyStream};
+pub use scripts::{
+    ProjectScript, ScriptCatalog, ScriptRef, ScriptSource, MAX_MANIFEST_BYTES, MAX_SCRIPTS,
+    MAX_SCRIPT_MEMBERS,
+};
 pub use search::{
     SearchHit, SearchHits, SearchQuery, DEFAULT_SEARCH_LIMIT, MAX_SCANNED_ENTRIES,
     MAX_SEARCH_LIMIT, SEARCH_TIMEOUT_MS, SKIPPED_DIRECTORIES,

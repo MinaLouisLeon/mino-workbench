@@ -99,6 +99,15 @@ the children. Here that would tear down every running shell just because a new
 one was opened, so splitting would restart the terminal you were working in.
 See `useTerminalSplitSizes`.
 
+Which terminals exist is `useTerminalStack`, shared through
+`TerminalStackContext` (provided in `Workbench`) because two controls open
+splits: the pane's **Split** button and the header's run-script menu. Each
+entry is `{ id, script }`. A split opened from the menu carries the
+`ProjectScript` it was opened for, passes its identity to `open_pty` as
+`spec.script`, and is labelled `▶ pnpm: dev`. The script runs once as the
+shell starts and the shell stays open afterwards. The four-shell ceiling
+applies to both. See [scripts-module.md](scripts-module.md).
+
 ## The terminal environment
 
 A child inherits the app's environment, and for a terminal emulator that is

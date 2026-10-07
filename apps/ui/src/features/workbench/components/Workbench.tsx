@@ -2,6 +2,7 @@ import { GitRefreshProvider } from "@/features/git/context/GitRefreshContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
 import { GitHubProvider } from "@/features/github/context/GitHubContext";
 import { SidebarProvider } from "@/features/sidebar/context/SidebarContext";
+import { TerminalStackProvider } from "@/features/terminal/context/TerminalStackContext";
 import { DraftsProvider } from "@/features/viewer/context/DraftsContext";
 import { ViewerModeProvider } from "@/features/viewer/context/ViewerModeContext";
 
@@ -34,6 +35,11 @@ import { WorkbenchPanes } from "./WorkbenchPanes";
  * of which branch is checked out could disagree - the workbench header is the
  * one already showing it. It is one `gh` probe for the whole window, on the
  * same terms as one `git status`.
+ *
+ * `TerminalStackProvider` holds which terminals are open, because two places
+ * open them: the Split button in the terminal pane and the run-script menu in
+ * the header. It is scoped here, like the rest, so a closed folder takes its
+ * shells with it.
  */
 export function Workbench() {
   return (
@@ -43,7 +49,9 @@ export function Workbench() {
           <GitHubProvider>
             <ViewerModeProvider>
               <SidebarProvider>
-                <WorkbenchPanes />
+                <TerminalStackProvider>
+                  <WorkbenchPanes />
+                </TerminalStackProvider>
               </SidebarProvider>
             </ViewerModeProvider>
           </GitHubProvider>

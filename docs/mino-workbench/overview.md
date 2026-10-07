@@ -56,7 +56,8 @@ and their Tauri/agent counterparts are in [endpoints.md](endpoints.md).
 | `search_files` | The whole tree, bounded: fuzzy filename search |
 | `stat` | Metadata for one path |
 | `read_file` | File contents behind the size ceiling and the binary sniff |
-| `open_pty` / `write_pty` / `resize_pty` / `close_pty` | Interactive shell session |
+| `list_project_scripts` | Every script the folder and its workspace members define - see [scripts-module.md](scripts-module.md) |
+| `open_pty` / `write_pty` / `resize_pty` / `close_pty` | Interactive shell session; `open_pty` runs a project script first when `spec.script` names one |
 | `run_structured` | Non-interactive Nushell call returning parsed JSON |
 | `probe_shell` | Is `nu` on PATH, and what is spawned instead |
 | `git().repository` | The repository containing the root, or `None` - and where "git is missing" is reported |
@@ -80,13 +81,15 @@ StartScreen
 connected
   `- Workbench (persisted splits)
        |- WorkbenchHeader -> Breadcrumb -> run_structured("path split")
-       |                                    `-> fails -> splitSegments() in TS
+       |                |                   `-> fails -> splitSegments() in TS
+       |                `- RunScriptMenu -> list_project_scripts
+       |                                 `-> choose -> TerminalStack.add(script)
        |- ActivityBar   -> useSidebarState -> which view shows, or none
        |- SidebarPanel  -> FileTreePane -> useFileTreePane -> useFileTree
        |                |                                     `-> list_dir per expand
        |                `- SearchPane  -> useFileSearch -> search_files (debounced)
        |- ViewerPane    -> useFileViewer   -> read_file -> useCodeMirror
-       `- TerminalPane  -> useTerminalSession -> open_pty + onPtyEvent
+       `- TerminalPane  -> useTerminalSession -> open_pty(+script) + onPtyEvent
                                               -> useTerminalResize -> resize_pty
 ```
 

@@ -74,6 +74,13 @@ macro_rules! unimplemented_transport {
                 Err($crate::TransportError::unimplemented($kind, "change_entry"))
             }
 
+            async fn list_project_scripts(&self) -> $crate::Result<$crate::types::ScriptCatalog> {
+                Err($crate::TransportError::unimplemented(
+                    $kind,
+                    "list_project_scripts",
+                ))
+            }
+
             async fn open_pty(
                 &self,
                 _spec: $crate::types::PtySpawnSpec,

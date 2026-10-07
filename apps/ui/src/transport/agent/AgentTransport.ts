@@ -12,6 +12,7 @@ import type {
   PtySize,
   PtySpawnSpec,
   ReadFileOptions,
+  ScriptCatalog,
   SearchHits,
   SearchQuery,
   ShellProbe,
@@ -86,6 +87,10 @@ export class AgentTransport implements TransportClient {
 
   changeEntry(_change: EntryChange): Promise<DirEntry | null> {
     return this.reject("change_entry");
+  }
+
+  listProjectScripts(): Promise<ScriptCatalog> {
+    return this.reject("list_project_scripts");
   }
 
   openPty(_spec: PtySpawnSpec): Promise<PtySession> {

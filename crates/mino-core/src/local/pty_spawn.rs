@@ -12,7 +12,10 @@ use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty};
 use tokio::sync::mpsc;
 
 use crate::error::{Result, TransportError};
+use crate::scripts::launch::Launch;
 use crate::types::{PtyEvent, PtyExit, PtySize};
+
+use super::pty_env::apply_env;
 
 /// Output chunks buffered before the reader thread blocks. Deep enough that a
 /// burst of terminal output (`cat` on a large file) does not stall the shell.
@@ -21,9 +24,6 @@ const READ_BUFFER_BYTES: usize = 8192;
 /// How long the waiter polls for an exit status after EOF before giving up.
 const EXIT_POLL_ATTEMPTS: u32 = 100;
 const EXIT_POLL_INTERVAL_MS: u64 = 50;
-/// Matches what the SSH transport requests, so a shell behaves the same on
-/// either transport.
-const TERM_NAME: &str = "xterm-256color";
 
 pub type SharedChild = Arc<Mutex<Box<dyn Child + Send + Sync>>>;
 
@@ -34,27 +34,8 @@ pub struct SpawnedPty {
     pub events: mpsc::Receiver<PtyEvent>,
 }
 
-/// What the child is told about the terminal it is attached to.
-///
-/// A child inherits this process's environment, and that is the wrong default
-/// for a terminal emulator: whatever launched the app decides whether `nu`,
-/// `claude` or `git` print in colour. Two cases bite in practice - a parent
-/// with no `TERM` at all (normal on Windows) and a parent carrying
-/// `NO_COLOR`, which is honoured by most modern CLI tools and turns the pane
-/// monochrome for reasons the user cannot see.
-///
-/// So the pty declares its own terminal, exactly as any other emulator does.
-/// xterm.js renders 256 colours and true colour, so it is honest to say so.
-fn apply_terminal_env(command: &mut CommandBuilder) {
-    command.env("TERM", TERM_NAME);
-    command.env("COLORTERM", "truecolor");
-    // Inherited opt-outs. The pane is colour-capable regardless of how the
-    // app itself was started, so these are cleared rather than passed on.
-    command.env_remove("NO_COLOR");
-    command.env_remove("CLICOLOR_FORCE");
-}
-
-pub fn spawn(program: &str, cwd: &str, size: PtySize) -> Result<SpawnedPty> {
+pub fn spawn(launch: &Launch, cwd: &str, size: PtySize) -> Result<SpawnedPty> {
+    let program = launch.program.as_str();
     let size = size.sanitised();
     let pair = native_pty_system()
         .openpty(portable_pty::PtySize {
@@ -66,8 +47,9 @@ pub fn spawn(program: &str, cwd: &str, size: PtySize) -> Result<SpawnedPty> {
         .map_err(|e| TransportError::pty(format!("could not open a pty: {e}")))?;
 
     let mut command = CommandBuilder::new(program);
+    command.args(&launch.args);
     command.cwd(cwd);
-    apply_terminal_env(&mut command);
+    apply_env(&mut command, launch);
 
     let child = pair
         .slave

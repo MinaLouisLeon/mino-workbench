@@ -21,6 +21,7 @@
 | [terminal-pane-module.md](terminal-pane-module.md) | PTY lifecycle, resize in both directions, the `nu`-missing fallback |
 | [file-tree-pane-module.md](file-tree-pane-module.md) | Lazy loading per folder, selection, per-level errors, and creating, renaming and deleting entries |
 | [context-menu-module.md](context-menu-module.md) | Right-click everywhere: why the browser's menu never opens, and what each area's own menu offers |
+| [scripts-module.md](scripts-module.md) | The run-script menu: the detector table, workspaces, and how a script reaches a shell without becoming shell text |
 | [sidebar-module.md](sidebar-module.md) | The activity rail, the view registry, collapsing, and filename search |
 | [viewer-pane-module.md](viewer-pane-module.md) | CodeMirror 6, language selection, binary and size guards |
 | [git-module.md](git-module.md) | The git surface: status and badges, staging, discard and commit, and reading history - diff, log, show and blame |
@@ -92,6 +93,11 @@ Search hit    → selection context → read_file(path)
 Tree row (file) → selection context → read_file(path)
                                     → size ceiling → binary sniff → FilePayload
                                     ↘ TooLarge / BinaryFile → viewer notice
+
+Header ▶ (or Ctrl+Shift+R) → list_project_scripts → grouped, filterable menu
+Script chosen → new split → open_pty({ script: { source, dir, name } })
+              → Rust re-scans, builds argv from fixed text → shell runs it, stays open
+              ↘ four shells already → rows disabled, nothing spawned
 
 Terminal keystroke → write_pty(id, data) → shell
 Pane resized      → fit() → xterm onResize → resize_pty(id, size)

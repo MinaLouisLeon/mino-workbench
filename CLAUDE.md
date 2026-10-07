@@ -125,6 +125,12 @@ equivalent here is given.
   `--force`.
 - A pull merging over uncommitted work. A dirty tree is refused with a sentence
   naming what to do; nothing is stashed on the reader's behalf.
+- A project script's command sent from the UI. The menu sends a `ScriptRef`
+  (source, folder, name); Rust scans that folder again and builds the argv
+  from fixed program text (`crates/mino-core/src/scripts/`). Any value from a
+  manifest must pass `scripts::safe::safe_value` or the script is not listed,
+  and the argv reaches the shell as positional parameters or
+  `$env.MINO_RUN_ARGV` - never spliced into a command line.
 - Text that came back from `gh` being rendered as markup or sent back to `gh`.
   Titles, labels and bodies are written by whoever opened the pull request or
   the issue, and are treated exactly as filenames are.

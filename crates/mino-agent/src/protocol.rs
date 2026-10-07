@@ -7,8 +7,8 @@
 
 use mino_core::types::{
     ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtyEvent, PtySession,
-    PtySessionId, PtySize, PtySpawnSpec, ReadFileOptions, SearchHits, SearchQuery, ShellProbe,
-    StructuredOutput, StructuredRequest,
+    PtySessionId, PtySize, PtySpawnSpec, ReadFileOptions, ScriptCatalog, SearchHits, SearchQuery,
+    ShellProbe, StructuredOutput, StructuredRequest,
 };
 use mino_core::TransportError;
 use serde::{Deserialize, Serialize};
@@ -50,6 +50,7 @@ pub enum AgentRequest {
     ChangeEntry {
         change: EntryChange,
     },
+    ListProjectScripts,
     OpenPty {
         spec: PtySpawnSpec,
     },
@@ -80,6 +81,7 @@ pub enum AgentResponse {
     File(FilePayload),
     /// The entry a create or rename produced; `None` after a delete.
     Changed(Option<DirEntry>),
+    Scripts(ScriptCatalog),
     PtyOpened(PtySession),
     Structured(StructuredOutput),
     Shell(ShellProbe),

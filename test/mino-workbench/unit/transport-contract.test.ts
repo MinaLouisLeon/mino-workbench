@@ -33,6 +33,7 @@ const METHODS: TransportMethod[] = [
   "readFile",
   "writeFile",
   "changeEntry",
+  "listProjectScripts",
   "openPty",
   "writePty",
   "resizePty",

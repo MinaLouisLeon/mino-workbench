@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { PtyEvent, PtySessionId, Unsubscribe } from "@/Types";
+import type { ProjectScript, PtyEvent, PtySessionId, Unsubscribe } from "@/Types";
 import { useTransport } from "@/context/TransportContext";
 import { useSessionContext } from "@/features/workbench/context/SessionContext";
 import { describeFailure } from "@/lib/transportError";
@@ -21,8 +21,12 @@ const IDLE: TerminalSessionState = {
  *
  * Teardown closes the session on the transport, so unmounting the pane - or
  * closing the window - never leaves a shell running.
+ *
+ * With a `script`, the shell runs it first. Only which script travels - its
+ * source, folder and name - and Rust looks it up again and builds the command
+ * itself, so nothing here can make a shell run text of the UI's choosing.
  */
-export function useTerminalSession() {
+export function useTerminalSession(script: ProjectScript | null = null) {
   const transport = useTransport();
   const { connection, shellProbe } = useSessionContext();
   const { container, terminal, fit, ready } = useXterm();
@@ -57,6 +61,9 @@ export function useTerminalSession() {
         const session = await transport.openPty({
           cwd: connection.root,
           size: fit(),
+          ...(script
+            ? { script: { source: script.source, dir: script.dir, name: script.name } }
+            : {}),
         });
         if (cancelled) {
           void transport.closePty(session.id).catch(() => undefined);
@@ -106,7 +113,7 @@ export function useTerminalSession() {
       openSession.current = null;
       if (id) void transport.closePty(id).catch(() => undefined);
     };
-  }, [ready, connection, shellProbe, transport, terminal, fit]);
+  }, [ready, connection, shellProbe, transport, terminal, fit, script]);
 
   // `terminal` is handed out for the context menu, which reads the selection
   // and pastes through xterm rather than through the page.
