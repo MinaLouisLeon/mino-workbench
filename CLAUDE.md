@@ -67,6 +67,9 @@ crates/mino-core/     transport trait, three implementations, domain types
 crates/mino-agent/    standalone daemon: WebSocket + HTTP, loopback only
 apps/desktop/         Tauri v2 app; src-tauri/src/commands/ is pure dispatch
 apps/ui/              React + TypeScript + Vite; the three panes
+apps/site/            the marketing site: Next.js App Router, Tailwind v4,
+                      shadcn/ui, deployed to Vercel. No colour of its own -
+                      see docs/mino-workbench/site-module.md
 docs/mino-workbench/    module documentation and the manual test guide
 test/                 every TypeScript test (see test/README.md)
 ```
@@ -89,7 +92,7 @@ equivalent here is given.
 | Rule | Where it lands here |
 | --- | --- |
 | API types in `src/Types/modules/api.ts`, exported via `src/Types/index.ts` | Same paths under `apps/ui/src`. The transport *is* the API: its request/response types and the `TransportClient` interface live there. Nothing declares them inline. |
-| No custom Tailwind colours | `apps/ui/src/theme/tokens.ts` is the only file with a colour value. `tailwind.config.ts` reads it, and the xterm and CodeMirror themes read it by name. |
+| No custom Tailwind colours | `apps/ui/src/theme/tokens.ts` is the only file with a colour value. `tailwind.config.ts` reads it, the xterm and CodeMirror themes read it by name, and `apps/site` generates its Tailwind v4 theme from it (`npm run gen:theme`). |
 | Components stay presentational | Every pane's state, effects and event wiring live in a feature `hooks/` folder; cross-cutting hooks in `apps/ui/src/hooks/`. |
 | No file over 150 lines | Applies to `.rs` as well as `.tsx`. Split into focused modules in the same folder. |
 | Repeated list items are compound components | The tree row: `TreeRowProvider` plus `TreeRow.Indent/.Chevron/.Icon/.Label/.Status`, all reading React context. |
@@ -141,6 +144,8 @@ equivalent here is given.
 | `npm run desktop` | Runs the Tauri app against the Vite dev server |
 | `npm run dev` | Runs the UI alone in a browser (agent transport) |
 | `npm run agent` | Runs the daemon on `127.0.0.1:8731` |
+| `npm run site` | Runs the marketing site (`apps/site`) on `localhost:3000` |
 | `npm run gen:types` | Regenerates the TypeScript domain types from Rust |
+| `npm run gen:theme` | Regenerates the site's colours from `tokens.ts` |
 | `npm test` | Vitest (`test/**/*.test.*`) |
 | `npm run test:e2e` | Playwright (`test/**/e2e/*.spec.ts`) |

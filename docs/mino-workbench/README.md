@@ -27,6 +27,7 @@
 | [remote-module.md](remote-module.md) | Fetch, pull and push; conflicts; review comments. D3's credential answer, redaction, and why a force push is a separate action |
 | [components.md](components.md) | Shared presentational components and the compound tree row |
 | [state-store.md](state-store.md) | Contexts, hooks, what is persisted and what must never be |
+| [site-module.md](site-module.md) | The marketing site at `apps/site`: generated colour tokens, shadcn/ui's role mapping, the release lookup, and the Vercel settings |
 | [manual-testing.md](manual-testing.md) | The QA guide: every scenario, per OS |
 
 ## Quick Reference
