@@ -6,9 +6,9 @@
 //! single definition rather than two drifting ones.
 
 use mino_core::types::{
-    ConnectionInfo, ConnectionTarget, DirEntry, FilePayload, PtyEvent, PtySession, PtySessionId,
-    PtySize, PtySpawnSpec, ReadFileOptions, SearchHits, SearchQuery, ShellProbe, StructuredOutput,
-    StructuredRequest,
+    ConnectionInfo, ConnectionTarget, DirEntry, EntryChange, FilePayload, PtyEvent, PtySession,
+    PtySessionId, PtySize, PtySpawnSpec, ReadFileOptions, SearchHits, SearchQuery, ShellProbe,
+    StructuredOutput, StructuredRequest,
 };
 use mino_core::TransportError;
 use serde::{Deserialize, Serialize};
@@ -47,6 +47,9 @@ pub enum AgentRequest {
         path: String,
         options: ReadFileOptions,
     },
+    ChangeEntry {
+        change: EntryChange,
+    },
     OpenPty {
         spec: PtySpawnSpec,
     },
@@ -75,6 +78,8 @@ pub enum AgentResponse {
     Stat(DirEntry),
     Search(SearchHits),
     File(FilePayload),
+    /// The entry a create or rename produced; `None` after a delete.
+    Changed(Option<DirEntry>),
     PtyOpened(PtySession),
     Structured(StructuredOutput),
     Shell(ShellProbe),

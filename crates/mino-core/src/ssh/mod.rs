@@ -21,6 +21,8 @@
 mod agent;
 mod command;
 mod connect;
+mod entries;
+mod entry_tree;
 mod exec;
 mod fs;
 mod git;

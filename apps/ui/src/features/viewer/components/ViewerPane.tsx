@@ -14,6 +14,7 @@ import { useFileDiff } from "../hooks/useFileDiff";
 import { useFileEditor } from "../hooks/useFileEditor";
 import { VIEWER_COPY } from "../messages";
 import { DiffView } from "./DiffView";
+import { EditorSurface } from "./EditorSurface";
 import { EditorStatus } from "./EditorStatus";
 import { ViewerModeToggle } from "./ViewerModeToggle";
 
@@ -112,11 +113,10 @@ export function ViewerPane() {
             conditionals below sit beside it rather than around it.
             `useCodeMirror` is told when it comes back, because a CodeMirror
             laid out at zero height measures itself wrong. */}
-        <div
-          ref={editor.container}
-          hidden={!showEditor}
-          aria-label={path ? `Contents of ${basename(path)}` : "File contents"}
-          className="min-h-0 flex-1"
+        <EditorSurface
+          editor={editor}
+          path={path} hidden={!showEditor}
+          editing={{ editable, dirty, onSave: () => void save() }}
         />
 
         {showEditor ? null : showingDiff && path ? (

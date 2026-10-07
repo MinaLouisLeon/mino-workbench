@@ -60,6 +60,7 @@ fn method_name(request: &AgentRequest) -> &'static str {
         AgentRequest::Stat { .. } => "stat",
         AgentRequest::SearchFiles { .. } => "search_files",
         AgentRequest::ReadFile { .. } => "read_file",
+        AgentRequest::ChangeEntry { .. } => "change_entry",
         AgentRequest::OpenPty { .. } => "open_pty",
         AgentRequest::WritePty { .. } => "write_pty",
         AgentRequest::ResizePty { .. } => "resize_pty",

@@ -1,6 +1,7 @@
 import type { KeyboardEvent, ReactNode } from "react";
 
 import { useTreeRow } from "../context/TreeRowContext";
+import { useTreeRowMenu } from "../hooks/useTreeMenus";
 import {
   TreeRowChevron,
   TreeRowGitStatus,
@@ -15,11 +16,13 @@ import {
  * parts below can be reordered or replaced without threading props.
  *
  * It is a real button: Enter and Space activate it, arrow keys expand and
- * collapse, and it takes focus in document order.
+ * collapse, and it takes focus in document order. Right-click - or the Menu
+ * key while it has focus - opens the entry's menu; see `useTreeRowMenu`.
  */
 function TreeRowRoot({ children }: { children: ReactNode }) {
   const { row, selected, onActivate, onExpandKey } = useTreeRow();
   const isDirectory = row.entry.kind === "directory";
+  const onContextMenu = useTreeRowMenu();
 
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (!isDirectory) return;
@@ -43,6 +46,7 @@ function TreeRowRoot({ children }: { children: ReactNode }) {
       title={row.entry.path}
       onClick={() => onActivate(row)}
       onKeyDown={onKeyDown}
+      onContextMenu={onContextMenu}
       className={`flex w-full items-center gap-1.5 px-2 py-0.5 text-left text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-accentStrong ${
         selected ? "bg-accentMuted" : "hover:bg-surfaceHover"
       }`}

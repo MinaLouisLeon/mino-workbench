@@ -6,6 +6,7 @@
  */
 export * from "./generated";
 export * from "./modules/api";
+export * from "./modules/entries";
 export * from "./modules/git";
 export * from "./modules/git-branches";
 export * from "./modules/git-history";

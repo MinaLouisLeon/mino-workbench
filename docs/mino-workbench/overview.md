@@ -114,6 +114,7 @@ and the root `package.json`.
 | Errors | `thiserror` | 2.0.9 |
 | TS export | `ts-rs` | 10.1.0 |
 | PATH lookup | `which` | 7.0.1 |
+| Recycle bin (local only) | `trash` | 5.2.9 |
 | SSH (phase 2) | `russh` / `russh-sftp` | 0.49.0 / 2.0.5 |
 | WebSocket (phase 2) | `tokio-tungstenite` | 0.24.0 |
 | Agent HTTP | `axum` | 0.8.1 |

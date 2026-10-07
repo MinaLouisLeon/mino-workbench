@@ -30,6 +30,9 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 ts-rs = { version = "10.1.0", features = ["serde-json-impl", "no-serde-warnings"] }
 uuid = { version = "1.11.0", features = ["v4", "serde"] }
 which = "7.0.1"
+# The local recycle bin, for the tree's "Move to Recycle Bin". Local only:
+# a remote host has no recycle bin this app can reach.
+trash = "5.2.9"
 
 # Transport scaffolding dependencies (phase 2 targets, declared now so the
 # interface is proven against three shapes from day one).

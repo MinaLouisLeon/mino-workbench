@@ -10,5 +10,6 @@
  * Kept out of the components so the strings stay shallow and a future
  * translation pass has one folder to reach for.
  */
+export * from "./menus";
 export * from "./review";
 export * from "./sections";

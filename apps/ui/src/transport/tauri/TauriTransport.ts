@@ -1,10 +1,12 @@
 import { listen } from "@tauri-apps/api/event";
 
 import type {
+  ChangeEntryArgs,
   ConnectArgs,
   ConnectionInfo,
   ConnectionTarget,
   DirEntry,
+  EntryChange,
   FilePayload,
   GitClient,
   GitHubClient,
@@ -34,7 +36,7 @@ import type {
   Unsubscribe,
   WritePtyArgs,
 } from "@/Types";
-import { TRANSPORT_COMMANDS } from "@/Types";
+import { ENTRY_COMMANDS, TRANSPORT_COMMANDS } from "@/Types";
 
 import { invokeTransport } from "./invoke";
 import { TauriGitClient } from "./TauriGitClient";
@@ -98,6 +100,10 @@ export class TauriTransport implements TransportClient {
       path,
       request,
     } satisfies WriteFileArgs);
+  }
+
+  changeEntry(change: EntryChange): Promise<DirEntry | null> {
+    return invokeTransport(ENTRY_COMMANDS.changeEntry, { change } satisfies ChangeEntryArgs);
   }
 
   openPty(spec: PtySpawnSpec): Promise<PtySession> {

@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from "react";
 import { render } from "@testing-library/react";
 
 import type { ConnectionTarget, TransportClient } from "@/Types";
+import { ContextMenuProvider } from "@/context/ContextMenuContext";
 import { TransportProvider } from "@/context/TransportContext";
 import { GitRefreshProvider } from "@/features/git/context/GitRefreshContext";
 import { GitStatusProvider } from "@/features/git/context/GitStatusContext";
@@ -64,31 +65,10 @@ export function renderConnected(
   root = "/root",
   target: ConnectionTarget = { kind: "local", detail: { root } },
 ) {
+  // The menu provider sits outermost, as it does in `App`: every pane with a
+  // right-click menu reaches for it, and it needs nothing from the others.
   return render(
-    <TransportProvider client={client}>
-      <SessionProvider>
-        <DraftsProvider>
-          <GitRefreshProvider>
-            <GitStatusProvider>
-              <GitHubProvider>
-                <SelectionProvider>
-                  <ViewerModeProvider>
-                    <Connected target={target}>{ui}</Connected>
-                  </ViewerModeProvider>
-                </SelectionProvider>
-              </GitHubProvider>
-            </GitStatusProvider>
-          </GitRefreshProvider>
-        </DraftsProvider>
-      </SessionProvider>
-    </TransportProvider>,
-  );
-}
-
-/** Renders providers only, for hooks that do not need a connection. */
-export function withProviders(client: TransportClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return (
+    <ContextMenuProvider>
       <TransportProvider client={client}>
         <SessionProvider>
           <DraftsProvider>
@@ -96,7 +76,9 @@ export function withProviders(client: TransportClient) {
               <GitStatusProvider>
                 <GitHubProvider>
                   <SelectionProvider>
-                    <ViewerModeProvider>{children}</ViewerModeProvider>
+                    <ViewerModeProvider>
+                      <Connected target={target}>{ui}</Connected>
+                    </ViewerModeProvider>
                   </SelectionProvider>
                 </GitHubProvider>
               </GitStatusProvider>
@@ -104,6 +86,31 @@ export function withProviders(client: TransportClient) {
           </DraftsProvider>
         </SessionProvider>
       </TransportProvider>
+    </ContextMenuProvider>,
+  );
+}
+
+/** Renders providers only, for hooks that do not need a connection. */
+export function withProviders(client: TransportClient) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <ContextMenuProvider>
+        <TransportProvider client={client}>
+          <SessionProvider>
+            <DraftsProvider>
+              <GitRefreshProvider>
+                <GitStatusProvider>
+                  <GitHubProvider>
+                    <SelectionProvider>
+                      <ViewerModeProvider>{children}</ViewerModeProvider>
+                    </SelectionProvider>
+                  </GitHubProvider>
+                </GitStatusProvider>
+              </GitRefreshProvider>
+            </DraftsProvider>
+          </SessionProvider>
+        </TransportProvider>
+      </ContextMenuProvider>
     );
   };
 }

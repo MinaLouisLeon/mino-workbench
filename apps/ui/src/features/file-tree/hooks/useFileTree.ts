@@ -82,6 +82,20 @@ export function useFileTree(root: string | null): FileTreeState {
     [load],
   );
 
+  /**
+   * Opens a folder by path, for the menu: a file created inside a collapsed
+   * folder should be visible once it exists, not hidden under a chevron.
+   */
+  const expandPath = useCallback(
+    (path: string) => {
+      setExpandedPaths((current) => withExpanded(current, path, true));
+      void load(path);
+    },
+    [load],
+  );
+
+  const collapseAll = useCallback(() => setExpandedPaths(new Set()), []);
+
   const toggle = useCallback(
     (row: TreeRowModel) => setExpanded(row, !row.expanded),
     [setExpanded],
@@ -99,5 +113,8 @@ export function useFileTree(root: string | null): FileTreeState {
     rootError: rootState?.error ?? null,
     toggle,
     setExpanded,
+    reload,
+    expandPath,
+    collapseAll,
   };
 }
