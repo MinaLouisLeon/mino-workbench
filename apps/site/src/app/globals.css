@@ -1,0 +1,92 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* The product's palette, generated from apps/ui/src/theme/tokens.ts. */
+@import "../styles/tokens.generated.css";
+
+/*
+ * shadcn/ui's components are written against role names - `bg-background`,
+ * `text-muted-foreground`, `border-border` - rather than against a palette.
+ * This block is the mapping, and it holds references only: there is not a
+ * colour value in this file, and there must never be one. A new colour belongs
+ * in the token file, which is where the header of that file says it belongs.
+ *
+ * `inline` matters. Without it a role would resolve to `var(--color-surface)`
+ * at use time, which is correct but opaque in devtools; with it the utility
+ * carries the real value, so `bg-card` inspects as the hex it actually is.
+ *
+ * One role is deliberately absent: `accent`. shadcn means "the subtle wash
+ * under a hovered menu item" by it, and this product means "teal, the one
+ * colour that is not grey" - so the token wins the name, and the three places
+ * a shadcn component wanted a hover wash say `bg-surface-hover` instead. That
+ * edit is noted where it was made.
+ */
+@theme inline {
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-text);
+
+  --color-card: var(--color-surface-raised);
+  --color-card-foreground: var(--color-text);
+  --color-popover: var(--color-surface-raised);
+  --color-popover-foreground: var(--color-text);
+
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-surface-sunken);
+  --color-secondary: var(--color-surface-hover);
+  --color-secondary-foreground: var(--color-text);
+
+  --color-muted: var(--color-surface-hover);
+  --color-muted-foreground: var(--color-text-muted);
+
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: var(--color-text);
+
+  --color-input: var(--color-border);
+  --color-ring: var(--color-accent);
+
+  /*
+   * The token file lists Inter and JetBrains Mono first and then the system
+   * fonts to fall back to, because the desktop app has no loader. This page
+   * does, so `layout.tsx` loads both families properly and these two point
+   * `font-sans` and `font-mono` at what it loaded - fallbacks included, since
+   * next/font builds a metric-matched local fallback into each variable.
+   */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+/*
+ * The app is dark and has no light mode - no theme switch, no
+ * `prefers-color-scheme` branch, one palette. `color-scheme` tells the browser
+ * so, which is what makes scrollbars and form controls come back dark instead
+ * of the white default sitting inside a dark page.
+ */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-selection text-text;
+  }
+
+  /* Anchored sections sit under a sticky header; this keeps their heading
+     clear of it when a nav link jumps to one. */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+}
